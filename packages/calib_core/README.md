@@ -63,3 +63,5 @@ surface colour, room light, projector blur and sensor noise.
 
 - Real capture sets recorded from a phone and projector (step 2).
 - Projector lens parameters and real depth (step 8).
+
+
