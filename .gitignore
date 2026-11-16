@@ -1,0 +1,8 @@
+.env
+.dart_tool/
+build/
+pubspec.lock
+__pycache__/
+.venv/
+*.pmap
+.DS_Store
