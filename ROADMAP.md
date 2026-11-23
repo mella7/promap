@@ -8,6 +8,10 @@ Every step has to end with something I can run and show. If I can't demo it, it'
 
 Stack: Flutter app, Android first. Calibration and scene logic as plain Dart packages. A small FastAPI service for the AI models.
 
+Where things run: all the AI (segmentation, depth, generating animations, the assistant) runs in the cloud. Rendering to the projector always stays on the phone, it has to hit 60 fps and can't wait on the network. Generated animations get downloaded once and the phone warps and plays them. Decoding the scan stays on the phone for now, I'll move it to the cloud only if it's too slow on a real phone (check in step 2).
+
+CI runs analyze and tests for every Dart package plus the schema check on each push (`.github/workflows/ci.yml`).
+
 ## Checkpoints
 
 Three points where I stop and decide if it's worth going on:
@@ -23,8 +27,8 @@ Three points where I stop and decide if it's worth going on:
 | 0. Hardware check | Waiting on hardware |
 | 1. Calibration core | Done, 25 tests passing |
 | 2. Scan app | Waiting on hardware |
-| 3. Scene and renderer | Scene core written, tests not run yet. Renderer not started |
-| 4. Cloud service and auto surfaces | Not started |
+| 3. Scene and renderer | Scene core done, 37 tests passing. Renderer not started |
+| 4. Cloud service and auto surfaces | Mask to surface code written (mapping_core), tests not run yet. Backend not started |
 | 5. Effect library | Not started |
 | 6. AI generation | Not started |
 | 7. Release polish | Not started |
@@ -89,13 +93,13 @@ Needs: steps 0 and 1.
 
 The data model plus a real renderer, so shapes I draw on the phone show up on the object with a colour or outline.
 
-The scene core is written in `packages/scene_core`: scene graph, 13 typed operations, undo, JSON save and load, and the shared schema in `schema/scene.schema.json`. Tests are written but I haven't run them yet.
+The scene core is done in `packages/scene_core`: scene graph, 13 typed operations, undo, JSON save and load, and the shared schema in `schema/scene.schema.json`. All 37 tests pass.
 
 - [x] Scene graph: surfaces as polygons in projector space, content per surface, pointer to the calibration file
 - [x] Typed operations for every change (add, move corner, set content, rename, delete and so on)
 - [x] Undo and redo on top of the operation log
 - [x] Save and load a scene as one JSON file, with a schema the backend can use too
-- [ ] Run the scene_core tests
+- [x] Run the scene_core tests
 - [ ] Draw a polygon by tapping points in the camera view, mapped into projector space
 - [ ] Renderer in the output window: solid fills, outlines, images, soft edges
 - [ ] Drag corner handles to fine-tune a surface, projection updating live
@@ -115,8 +119,9 @@ Small backend that finds the surfaces so nobody has to draw polygons. The backen
 - [ ] Fake versions of both that return canned results, so the app can be tested offline
 - [ ] API keys and model settings in `.env`, never in code
 - [ ] App side: take one photo under flat white projector light and send it
-- [ ] Map the returned masks from camera space into projector space using the calibration
-- [ ] Clean up each mask into a surface: simplify the outline, drop tiny bits
+- [x] Map the returned masks from camera space into projector space using the calibration (`packages/mapping_core`)
+- [x] Clean up each mask into a surface: simplify the outline, drop tiny bits
+- [ ] Run the mapping_core tests
 - [ ] Use depth to split a mask into flat faces where it bends
 - [ ] Merge, split, rename and delete surfaces in the phone UI
 

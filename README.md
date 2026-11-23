@@ -10,13 +10,15 @@ The plan and where each step stands is in [ROADMAP.md](ROADMAP.md).
 
 | Folder | What it is | Status |
 | --- | --- | --- |
-| `packages/calib_core` | Structured-light calibration in plain Dart | Step 1, written |
-| `packages/scene_core` | Scene graph, typed operations, undo | Step 3 first half, written |
+| `packages/calib_core` | Structured-light calibration in plain Dart | Done, 25 tests passing |
+| `packages/scene_core` | Scene graph, typed operations, undo | Done, 37 tests passing |
+| `packages/mapping_core` | Turns camera-space masks and shapes into projector-space surfaces | Written |
 | `packages/effects` | Effect format, shaders, themes | Step 5, not started |
 | `app` | Flutter app: phone UI, projector output, device layer | Steps 0 and 2, needs hardware |
 | `backend` | FastAPI service for segmentation, depth, generation, assistant | Step 4, not started |
 | `schema` | Scene JSON Schema shared by app and backend | Written |
 | `docs` | Notes per step | |
+| `scripts` | Small helper scripts, such as the schema check | |
 
 ## Run the tests
 
@@ -40,6 +42,24 @@ dart test
 ```
 
 This checks the scene model, all operations and undo.
+
+```
+cd packages/mapping_core
+dart pub get
+dart test
+```
+
+This runs the scan simulator, then turns camera-space masks into surfaces and
+compares them with the known answer.
+
+The schema check needs Python and `jsonschema`:
+
+```
+pip install jsonschema
+python scripts/check_schema.py
+```
+
+CI runs all of these on every push and pull request.
 
 ## Rules
 
