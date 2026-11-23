@@ -37,7 +37,11 @@ Body: the photo, `Content-Type: image/png` or `image/jpeg`. The app sends an
 - `width` and `height` are the photo's size. The app refuses a reply whose size
   doesn't match the photo it sent.
 - `name` is shown to the user. `label` says what the thing is ("box",
-  "window", "wall") and may be null.
+  "window", "wall") and may be null. The fake model gives labels; SAM 2.1
+  doesn't, so its surfaces are "Surface 1", "Surface 2" and so on with a
+  null label, largest first.
+- Masks don't overlap with SAM 2.1: a box in front of a wall is cut out of
+  the wall's mask.
 - `score` is the model's confidence, 0 to 1.
 - `rle.counts` is the mask, run-length encoded (below).
 
@@ -78,3 +82,4 @@ Errors come back as `{"detail": "<message>"}` with these codes:
 | 401 | Missing or wrong API key |
 | 413 | Upload larger than the byte limit |
 | 415 | Content type isn't `image/png` or `image/jpeg` |
+| 503 | The configured model can't run, usually because the ml extra isn't installed. The detail says what to do |

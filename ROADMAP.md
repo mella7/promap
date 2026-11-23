@@ -28,10 +28,10 @@ Three points where I stop and decide if it's worth going on:
 | 1. Calibration core | Done, 25 tests passing |
 | 2. Scan app | App shell runs on the laptop with the simulator. Phone part waiting on hardware |
 | 3. Scene and renderer | Scene core done, 37 tests passing. Renderer not started |
-| 4. Cloud service and auto surfaces | Backend runs with fake models, app calls it. Mask to surface code done. Real models not picked yet |
+| 4. Cloud service and auto surfaces | Backend runs with fake or real models (SAM 2.1, Depth Anything V2), app calls it. Depth tried on a real photo, SAM next. Not deployed |
 | 5. Effect library | Six effects, three themes and a picker running on the laptop. Sound and shader effects not started |
 | 6. AI generation | Not started |
-| 7. Release polish | Not started |
+| 7. Release polish | Save and reopen works on the laptop. Rest not started |
 | 8. Later | Not started |
 
 ## Step 0 - Hardware check
@@ -122,8 +122,12 @@ Small backend that finds the surfaces so nobody has to draw polygons. The backen
 - [x] Fake versions of both that return canned results, so the app can be tested offline
 - [x] API keys and model settings in `.env`, never in code
 - [x] App side: take one photo under flat white projector light and send it
-- [ ] Pick and plug in a real segmentation model (check the licence first)
-- [ ] Pick and plug in a real depth model
+- [x] Real segmentation model: SAM 2.1 small (Apache 2.0), with clean-up so surfaces don't overlap
+- [x] Real depth model: Depth Anything V2 Small (Apache 2.0)
+- [x] Depth on a real bedroom photo: looks right (bed closest, corner furthest, shelf and walls separate)
+- [ ] SAM on a real photo (first try failed: torchvision was missing)
+- [ ] Real run times on my laptop CPU, load and run counted apart
+- [ ] Names for surfaces ("window", "box"): SAM gives none. Look at SAM 3 text prompts (its own Meta licence, allows commercial use) or a small labelling step
 - [ ] Deploy the backend somewhere the phone can reach (with the API key on)
 - [x] Map the returned masks from camera space into projector space using the calibration (`packages/mapping_core`)
 - [x] Clean up each mask into a surface: simplify the outline, drop tiny bits
@@ -146,7 +150,7 @@ Effects are small programs that read each surface's shape, depth and photo, so o
 - [ ] A particle effect that bounces off the real edges (sparkles only twinkle for now)
 - [ ] Sound reactivity from the phone mic, usable by any effect
 - [x] Effect picker per surface (tap it in the camera view)
-- [ ] Sliders for each effect's settings
+- [x] Sliders for each effect's settings (live preview while dragging, one undo step on release)
 - [x] Themes: one tap assigns effects to all surfaces by role (background or object)
 - [ ] Rework the themes once I know who the first user is
 - [ ] Check frame rate on a real phone with several effects running (the output shows fps)
@@ -177,7 +181,8 @@ Make it something a stranger can install and use without me there. Mostly small 
 
 - [ ] First-run guide: how to connect, where to put the phone, how dark the room needs to be
 - [ ] Scan tips based on the quality report ("dim the lights", "move the phone back")
-- [ ] Save, name and reopen scenes
+- [x] Save and reopen a scene with its calibration (one slot for now, `~/promap-projects/last` on the laptop)
+- [ ] Name scenes and keep several
 - [ ] One-tap re-align: quick rescan that keeps the design when the projector got bumped
 - [ ] Record the result with the phone camera and share it
 - [ ] Show mode: hide the UI and play a list of looks in order

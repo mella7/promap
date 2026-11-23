@@ -26,6 +26,10 @@ class DepthResult:
 class Segmenter(Protocol):
     name: str
 
+    def load(self) -> None:
+        """Gets the weights ready. Called on first use if nobody did it earlier."""
+        ...
+
     def segment(self, image: np.ndarray) -> list[MaskResult]:
         """Finds surfaces in an RGB image (height x width x 3, uint8)."""
         ...
@@ -33,6 +37,10 @@ class Segmenter(Protocol):
 
 class DepthEstimator(Protocol):
     name: str
+
+    def load(self) -> None:
+        """Gets the weights ready. Called on first use if nobody did it earlier."""
+        ...
 
     def estimate(self, image: np.ndarray) -> DepthResult:
         """Estimates relative depth for an RGB image."""

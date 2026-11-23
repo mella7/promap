@@ -8,18 +8,25 @@ import io
 import numpy as np
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from PIL import Image
+from starlette.concurrency import run_in_threadpool
 
 from . import __version__, rle
 from .config import Settings
 from .images import ACCEPTED_TYPES, ImageError, read_image
-from .models import load_depth, load_segmenter
+from .models import DepthEstimator, ModelUnavailable, Segmenter, load_depth, load_segmenter
 from .schemas import DepthResponse, Health, Mask, Rle, SegmentResponse
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    *,
+    segmenter: Segmenter | None = None,
+    depth_model: DepthEstimator | None = None,
+) -> FastAPI:
+    """Builds the app. Tests can pass their own models."""
     settings = settings or Settings.from_env()
-    segmenter = load_segmenter(settings.segmenter)
-    depth_model = load_depth(settings.depth)
+    segmenter = segmenter or load_segmenter(settings)
+    depth_model = depth_model or load_depth(settings)
 
     app = FastAPI(title="promap backend", version=__version__)
 
@@ -59,7 +66,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def segment(request: Request) -> SegmentResponse:
         image = await read_upload(request)
         height, width = image.shape[:2]
-        results = segmenter.segment(image)
+        # Models are slow and block, so they run off the event loop.
+        results = await _run(segmenter.segment, image)
         return SegmentResponse(
             model=segmenter.name,
             width=width,
@@ -79,7 +87,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def depth(request: Request) -> DepthResponse:
         image = await read_upload(request)
         height, width = image.shape[:2]
-        values = depth_model.estimate(image).depth.astype(np.float64)
+        values = (await _run(depth_model.estimate, image)).depth.astype(np.float64)
         low, high = float(values.min()), float(values.max())
         scaled = np.zeros_like(values) if high == low else (values - low) / (high - low)
         as16 = np.round(scaled * 65535).astype(np.uint16)
@@ -93,6 +101,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
 
     return app
+
+
+async def _run(function, image):
+    try:
+        return await run_in_threadpool(function, image)
+    except ModelUnavailable as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
 
 app = create_app()

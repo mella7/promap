@@ -85,7 +85,7 @@ class BackendSurfaceFinder implements SurfaceFinder {
   final Duration timeout;
 
   const BackendSurfaceFinder(this.baseUrl,
-      {this.apiKey, this.timeout = const Duration(seconds: 30)});
+      {this.apiKey, this.timeout = const Duration(seconds: 120)});
 
   @override
   String get description => 'backend at $baseUrl';

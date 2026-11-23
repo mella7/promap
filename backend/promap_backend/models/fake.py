@@ -32,6 +32,9 @@ def _rect(width: int, height: int, left: float, top: float, right: float, bottom
 class FakeSegmenter:
     name = "fake"
 
+    def load(self) -> None:
+        pass
+
     def segment(self, image: np.ndarray) -> list[MaskResult]:
         height, width = image.shape[:2]
         return [
@@ -42,6 +45,9 @@ class FakeSegmenter:
 
 class FakeDepth:
     name = "fake"
+
+    def load(self) -> None:
+        pass
 
     def estimate(self, image: np.ndarray) -> DepthResult:
         height, width = image.shape[:2]
