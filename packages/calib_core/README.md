@@ -59,6 +59,15 @@ tilted surface, camera lens distortion, a box at a different depth, patchy
 surface colour, room light, projector blur and sensor noise.
 `SimScene.standard()` is the scene the tests use.
 
+## Measuring the projector's delay
+
+`findDelay(samples)` takes camera brightness readings from around the moment
+the output switched from black to white and returns when the camera first
+saw it (the first frame halfway between dark and bright). With screen
+mirroring that's mostly the mirroring delay. `settleFor(delay)` turns it
+into the wait a scan needs after each pattern: a third more, plus 20 ms.
+`meanLevel(image)` gives the brightness reading.
+
 ## Not here yet
 
 - Real capture sets recorded from a phone and projector (step 2).

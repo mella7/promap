@@ -24,13 +24,15 @@ class ScanController extends ChangeNotifier {
     required CameraSource camera,
     required OutputController output,
     Duration settle = const Duration(milliseconds: 30),
+    int coarseShift = 1,
     void Function(GrayImage frame)? onFrame,
   }) async {
     if (_busy) return null;
     _busy = true;
     _progress = 0;
     try {
-      final patterns = PatternSet(output.width, output.height);
+      final patterns =
+          PatternSet(output.width, output.height, coarseShift: coarseShift);
       final total = patterns.specs.length;
       final frames = <GrayImage>[];
       for (var i = 0; i < total; i++) {

@@ -38,13 +38,16 @@ Three points where I stop and decide if it's worth going on:
 
 Throwaway test app to make sure the phone can drive the projector and that I can control the camera. This goes first because if it fails, half the plan changes.
 
-- [ ] Phone connected to the projector shows up in Android as a second display, not a mirror
-- [ ] Different image on the projector than on the phone screen
-- [ ] Read the projector's real resolution and output at exactly that
+- [x] How the phone reaches the projector: wireless screen mirroring. So no second display: the phone shows the projector picture full screen and the projector mirrors it
+- [x] Projector view in the app: the output alone, full screen, bars hidden
+- [x] Delay test in the app: flash white, time until the camera sees it, scans wait a bit longer than that (tested in the simulator with a 150 ms "mirrored" preset)
+- [x] Wide stripes option (8 px) in case mirroring compresses away the 4 px ones
+- [ ] Real camera in the app (Flutter's `camera` plugin, waiting on my OK)
+- [ ] Read the projector's real resolution and match the output to it
 - [ ] Auto-keystone and any picture "enhancement" turned off on the projector
 - [ ] Camera opens with exposure, focus and white balance locked, and they stay locked
 - [ ] Project white, then black, and check the camera sees a clear difference
-- [ ] Roughly measure how long a new frame takes to show up on the wall
+- [ ] Measure the real mirroring delay with the app
 
 Demo: camera preview on the phone while the projector shows a test grid at its native resolution, with sharp single-pixel lines.
 

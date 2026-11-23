@@ -7,6 +7,7 @@ import '../devices/simulated_camera.dart';
 import '../workbench.dart';
 import 'camera_view.dart';
 import 'output_view.dart';
+import 'projector_page.dart';
 
 class WorkbenchPage extends StatefulWidget {
   /// Pass one in tests to control timing; the page makes its own otherwise.
@@ -141,6 +142,20 @@ class _Controls extends StatelessWidget {
               child: const Text('Scan'),
             ),
             OutlinedButton(
+              onPressed: busy ? null : bench.measureDelay,
+              child: const Text('Measure delay'),
+            ),
+            FilterChip(
+              label: const Text('Wide stripes'),
+              selected: bench.wideStripes,
+              onSelected: busy ? null : bench.setWideStripes,
+            ),
+            OutlinedButton(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => ProjectorPage(controller: bench.output))),
+              child: const Text('Projector view'),
+            ),
+            OutlinedButton(
               onPressed: busy || !bench.calibrated ? null : bench.findSurfaces,
               child: const Text('Find surfaces'),
             ),
@@ -261,7 +276,7 @@ class _Controls extends StatelessWidget {
           const SizedBox(height: 4),
           Text(bench.scan.phase, style: textTheme.bodySmall),
         ] else ...[
-          if (bench.finding || bench.asking) ...[
+          if (bench.finding || bench.asking || bench.measuring) ...[
             const LinearProgressIndicator(),
             const SizedBox(height: 4),
           ],
@@ -280,6 +295,12 @@ class _Controls extends StatelessWidget {
             'Surfaces: ${[for (final s in surfaces) s.name].join(', ')}',
             style: textTheme.bodySmall,
           ),
+        Text(
+          'Scan waits ${bench.scanSettle.inMilliseconds} ms per pattern'
+          '${bench.measuredDelay == null ? ' (delay not measured yet)' : ''}'
+          ', ${bench.wideStripes ? 'wide' : 'fine'} stripes',
+          style: textTheme.bodySmall,
+        ),
         Text(
           'Surfaces come from: ${bench.finder.description}',
           style: textTheme.bodySmall,

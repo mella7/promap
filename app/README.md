@@ -74,7 +74,15 @@ right.
    `~/promap-projects/last` and loads them back, so a mapping survives a
    restart without scanning again.
 6. **Try the presets.** Bright room, weak projector, overexposed camera and
-   camera aimed away each fail with their own message.
+   camera aimed away each fail with their own message. "Mirrored projector"
+   shows everything 150 ms late, like wireless screen mirroring: press
+   Measure delay (Auto map does it for you the first time) and the scan
+   waits long enough.
+   - **Wide stripes** scans with 8-pixel stripes instead of 4, for when
+     mirroring blurs the fine ones.
+   - **Projector view** shows only the output, full screen. With mirroring
+     that's what the phone screen shows while scanning and playing.
+     Double-tap to go back.
 7. **White light / Show mapping** switches between lighting the room and
    showing the surfaces.
 

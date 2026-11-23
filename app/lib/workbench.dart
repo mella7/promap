@@ -20,7 +20,8 @@ import 'ui/colors.dart';
 /// In step 0 the simulated camera and the on-screen output get swapped for
 /// the phone camera and the external display. Nothing else here changes.
 class Workbench extends ChangeNotifier {
-  /// Wait after showing each pattern. A real projector needs more.
+  /// Wait after showing each pattern, until a delay is measured. A real
+  /// projector needs more, and a mirrored one a lot more.
   final Duration settle;
 
   final OutputController output = OutputController(320, 240);
@@ -55,6 +56,11 @@ class Workbench extends ChangeNotifier {
   String _status = '';
   bool _finding = false;
   bool _asking = false;
+  bool _measuring = false;
+  bool _hasCamera = false;
+  late Duration _scanSettle = settle;
+  Duration? _delay;
+  bool _wideStripes = false;
 
   /// Surface being split, and the first point of the cut once tapped.
   String? _splitting;
@@ -83,9 +89,31 @@ class Workbench extends ChangeNotifier {
   /// True while waiting for the assistant.
   bool get asking => _asking;
 
-  /// True while scanning, finding surfaces or asking the assistant. Most
-  /// buttons are off then.
-  bool get busy => scan.busy || _finding || _asking;
+  /// True while scanning, finding surfaces, measuring the delay or asking
+  /// the assistant. Most buttons are off then.
+  bool get busy => scan.busy || _finding || _asking || _measuring;
+
+  /// True while measuring the projector's delay.
+  bool get measuring => _measuring;
+
+  /// How late the projector shows what the app draws, once measured.
+  Duration? get measuredDelay => _delay;
+
+  /// How long a scan waits after each pattern.
+  Duration get scanSettle => _scanSettle;
+
+  /// Scan with 8-pixel stripes instead of 4: four fewer patterns and a bit
+  /// less precise, but they survive blur and video compression better.
+  bool get wideStripes => _wideStripes;
+
+  void setWideStripes(bool wide) {
+    if (busy || wide == _wideStripes) return;
+    _wideStripes = wide;
+    _status = wide
+        ? 'Wide stripes on. Good for mirroring and soft focus. Scan again.'
+        : 'Fine stripes on. Scan again.';
+    notifyListeners();
+  }
 
   void setPreset(SimPreset preset) {
     if (busy) return;
@@ -95,7 +123,11 @@ class Workbench extends ChangeNotifier {
 
   void _usePreset(SimPreset preset) {
     _preset = preset;
-    _camera = SimulatedCamera(preset.build(), output);
+    if (_hasCamera) _camera.dispose();
+    _camera = SimulatedCamera(preset.build(), output, delay: preset.delay);
+    _hasCamera = true;
+    _delay = null;
+    _scanSettle = settle;
     _store = SceneStore(
         Scene(projectorWidth: output.width, projectorHeight: output.height));
     _store.addListener(_onSceneChanged);
@@ -134,7 +166,8 @@ class Workbench extends ChangeNotifier {
     final result = await scan.run(
       camera: _camera,
       output: output,
-      settle: settle,
+      settle: _scanSettle,
+      coarseShift: _wideStripes ? 2 : 1,
       onFrame: (frame) {
         _cameraFrame = frame;
         notifyListeners();
@@ -234,6 +267,7 @@ class Workbench extends ChangeNotifier {
   /// so Undo peels the result back a stage at a time.
   Future<void> autoMap([EffectTheme? theme]) async {
     if (busy) return;
+    if (_delay == null && !await measureDelay()) return;
     await startScan();
     if (!calibrated) return; // the scan's message says what went wrong
     final old = _store.scene.surfaces;
@@ -249,6 +283,61 @@ class Workbench extends ChangeNotifier {
     _status = 'Mapped ${_store.scene.surfaces.length} surfaces with '
         '"${look.name}". Tap a surface to change it.';
     notifyListeners();
+  }
+
+  /// Measures how late the projector shows what the app draws: shows black,
+  /// switches to white and times how long until the camera sees it. Scans
+  /// then wait a bit longer than that after each pattern. Returns false when
+  /// the camera never saw the light come on.
+  Future<bool> measureDelay() async {
+    if (busy) return false;
+    _measuring = true;
+    _status = 'Measuring how late the projector shows things...';
+    notifyListeners();
+    try {
+      output.showBlack();
+      // Long enough for a mirrored picture to catch up and go dark.
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+
+      final clock = Stopwatch()..start();
+      final raw = <(Duration, double)>[];
+      Future<void> take() async {
+        final frame = await _camera.capture();
+        raw.add((clock.elapsed, meanLevel(frame)));
+      }
+
+      for (var i = 0; i < 3; i++) {
+        await take();
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      final dark = raw.map((r) => r.$2).reduce((a, b) => a + b) / raw.length;
+      final switchedAt = clock.elapsed;
+      output.showWhite();
+      var brightFrames = 0;
+      while (clock.elapsed - switchedAt < const Duration(seconds: 2)) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        await take();
+        brightFrames = raw.last.$2 - dark >= 20 ? brightFrames + 1 : 0;
+        if (brightFrames >= 3) break;
+      }
+
+      final delay = findDelay(
+          [for (final (at, level) in raw) BrightnessSample(at - switchedAt, level)]);
+      if (delay == null) {
+        _status = "Couldn't see the projector light up. Check that the camera "
+            'sees the projection, then try again.';
+        return false;
+      }
+      _delay = delay;
+      _scanSettle = settleFor(delay);
+      _status = 'The projector shows things ${delay.inMilliseconds} ms late. '
+          'Each scan pattern now waits ${_scanSettle.inMilliseconds} ms.';
+      return true;
+    } finally {
+      _measuring = false;
+      _refreshCamera();
+      notifyListeners();
+    }
   }
 
   /// Starts split mode: the next two taps on the camera view draw the cut.
