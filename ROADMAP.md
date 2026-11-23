@@ -139,7 +139,9 @@ Small backend that finds the surfaces so nobody has to draw polygons. The backen
 - [x] Clean up each mask into a surface: simplify the outline, drop tiny bits
 - [x] Run the mapping_core tests
 - [ ] Use depth to split a mask into flat faces where it bends
-- [ ] Merge, split, rename and delete surfaces in the phone UI
+- [x] Merge, rename, hide and delete surfaces in the UI, all undoable
+- [ ] Split a surface in two
+- [x] Auto map: scan, find surfaces and theme them in one tap
 
 Demo: scan two boxes and a wall, each face shows up as its own named surface and lights up when I tap it.
 

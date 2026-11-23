@@ -217,6 +217,84 @@ class Workbench extends ChangeNotifier {
     return id == null ? null : _store.scene.surfaceById(id);
   }
 
+  /// Scan, find surfaces and dress them with [theme], in one go. Surfaces
+  /// already in the scene are cleared first. Each stage is its own undo step,
+  /// so Undo peels the result back a stage at a time.
+  Future<void> autoMap([EffectTheme? theme]) async {
+    if (busy) return;
+    await startScan();
+    if (!calibrated) return; // the scan's message says what went wrong
+    final old = _store.scene.surfaces;
+    if (old.isNotEmpty) {
+      _store.applyAll([for (final s in old) RemoveSurface(s.id)],
+          label: 'Clear surfaces');
+      output.select(null);
+    }
+    await findSurfaces();
+    if (_store.scene.surfaces.isEmpty) return;
+    final look = theme ?? themes.first;
+    applyTheme(look);
+    _status = 'Mapped ${_store.scene.surfaces.length} surfaces with '
+        '"${look.name}". Tap a surface to change it.';
+    notifyListeners();
+  }
+
+  /// Gives a surface a new name. Blank names are ignored.
+  void renameSurface(String surfaceId, String name) {
+    final clean = name.trim();
+    final surface = _store.scene.surfaceById(surfaceId);
+    if (busy || surface == null || clean.isEmpty || clean == surface.name) {
+      return;
+    }
+    _store.apply(RenameSurface(surfaceId, clean));
+    _status = 'Renamed "${surface.name}" to "$clean".';
+    notifyListeners();
+  }
+
+  /// Hides a surface, or shows it again.
+  void toggleVisible(String surfaceId) {
+    final surface = _store.scene.surfaceById(surfaceId);
+    if (busy || surface == null) return;
+    _store.apply(SetVisible(surfaceId, !surface.visible));
+    _status = surface.visible
+        ? '"${surface.name}" is hidden.'
+        : '"${surface.name}" is showing again.';
+    notifyListeners();
+  }
+
+  /// Removes a surface from the scene. Undo brings it back.
+  void deleteSurface(String surfaceId) {
+    final surface = _store.scene.surfaceById(surfaceId);
+    if (busy || surface == null) return;
+    _store.apply(RemoveSurface(surfaceId));
+    if (output.selected == surfaceId) output.select(null);
+    _status = 'Deleted "${surface.name}". Undo brings it back.';
+    notifyListeners();
+  }
+
+  /// Joins [otherId] into [keepId]: one outline around both, [keepId]'s
+  /// name and look, [otherId] removed. One undo step. Refused when the two
+  /// don't touch.
+  void mergeSurfaces(String keepId, String otherId) {
+    final scene = _store.scene;
+    final keep = scene.surfaceById(keepId);
+    final other = scene.surfaceById(otherId);
+    if (busy || keep == null || other == null || keepId == otherId) return;
+    final outline = mergeOutlines(keep.vertices, other.vertices,
+        scene.projectorWidth, scene.projectorHeight);
+    if (outline == null) {
+      _status = '"${keep.name}" and "${other.name}" don\'t touch, '
+          'so they can\'t be one surface.';
+      notifyListeners();
+      return;
+    }
+    _store.applyAll([SetVertices(keepId, outline), RemoveSurface(otherId)],
+        label: 'Merge "${other.name}" into "${keep.name}"');
+    output.select(keepId);
+    _status = 'Merged "${other.name}" into "${keep.name}".';
+    notifyListeners();
+  }
+
   /// Sends [prompt] and the scene to the assistant and applies what comes
   /// back as one undo step.
   Future<void> askAssistant(String prompt) async {

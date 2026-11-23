@@ -5,5 +5,6 @@ library;
 export 'src/components.dart';
 export 'src/contour.dart';
 export 'src/mask.dart';
+export 'src/merge.dart';
 export 'src/projection.dart';
 export 'src/surfaces.dart';

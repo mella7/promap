@@ -54,6 +54,13 @@ same steps; the Dart tests require at least 0.95).
 | `simplifyTolerance` | 1.5 | How far the outline may move when corners are removed |
 | `largestPieceOnly` | false | One surface per mask instead of one per piece |
 
+## Merging surfaces
+
+`mergeOutlines(a, b, width, height)` draws two outlines into one mask,
+closes seams up to 3 pixels (neighbouring surfaces from a scan often have
+one), and traces the result again. It returns null when the two still don't
+touch, so the app can refuse instead of making a surface with two pieces.
+
 ## Not here yet
 
 - Holes inside a surface are filled, not kept. A window frame with the glass

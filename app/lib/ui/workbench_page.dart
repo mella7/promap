@@ -133,6 +133,10 @@ class _Controls extends StatelessWidget {
               ],
             ),
             FilledButton(
+              onPressed: busy ? null : () => bench.autoMap(),
+              child: const Text('Auto map'),
+            ),
+            OutlinedButton(
               onPressed: busy ? null : bench.startScan,
               child: const Text('Scan'),
             ),
@@ -202,6 +206,34 @@ class _Controls extends StatelessWidget {
                         value: effect.id, child: Text(effect.name)),
                 ],
               ),
+              TextButton(
+                onPressed:
+                    busy ? null : () => _rename(context, bench, selected),
+                child: const Text('Rename'),
+              ),
+              TextButton(
+                onPressed: busy ? null : () => bench.toggleVisible(selected.id),
+                child: Text(selected.visible ? 'Hide' : 'Show'),
+              ),
+              TextButton(
+                onPressed: busy ? null : () => bench.deleteSurface(selected.id),
+                child: const Text('Delete'),
+              ),
+              if (surfaces.length > 1)
+                DropdownButton<String>(
+                  hint: const Text('Merge with'),
+                  value: null,
+                  onChanged: busy
+                      ? null
+                      : (id) {
+                          if (id != null) bench.mergeSurfaces(selected.id, id);
+                        },
+                  items: [
+                    for (final s in surfaces)
+                      if (s.id != selected.id)
+                        DropdownMenuItem(value: s.id, child: Text(s.name)),
+                  ],
+                ),
             ],
           ),
         if (bench.assistant != null)
@@ -311,6 +343,35 @@ class _AssistantBoxState extends State<_AssistantBox> {
       ),
     );
   }
+}
+
+/// Asks for a new name for [surface].
+Future<void> _rename(
+    BuildContext context, Workbench bench, Surface surface) async {
+  final controller = TextEditingController(text: surface.name);
+  final name = await showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Rename surface'),
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        onSubmitted: (value) => Navigator.of(context).pop(value),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(controller.text),
+          child: const Text('Rename'),
+        ),
+      ],
+    ),
+  );
+  controller.dispose();
+  if (name != null) bench.renameSurface(surface.id, name);
 }
 
 const _plainColour = '_plain';
