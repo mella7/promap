@@ -6,3 +6,6 @@ __pycache__/
 .venv/
 *.pmap
 .DS_Store
+*.egg-info/
+.pytest_cache/
+.ruff_cache/

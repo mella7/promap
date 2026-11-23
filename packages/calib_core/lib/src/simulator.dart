@@ -14,6 +14,10 @@ class SimBox {
   final double shiftX;
   final double shiftY;
 
+  /// Surface brightness of the box (0-1), so it stands out from the wall.
+  /// Null keeps the wall's pattern.
+  final double? albedo;
+
   const SimBox({
     required this.left,
     required this.top,
@@ -21,6 +25,7 @@ class SimBox {
     required this.bottom,
     required this.shiftX,
     required this.shiftY,
+    this.albedo,
   });
 
   bool contains(double u, double v) =>
@@ -86,7 +91,8 @@ class SimScene {
   }
 
   /// A 480x360 camera looking at a 320x240 projection on a tilted wall with a
-  /// box in front of it. Used by the tests and the example.
+  /// box in front of it. The wall has a checker pattern and the box is a
+  /// plain lighter grey. Used by the tests, the example and the app.
   factory SimScene.standard({
     double ambient = 25,
     double gain = 150,
@@ -102,7 +108,14 @@ class SimScene {
       homography: const [0.86, 0.05, -45, -0.03, 0.90, -38, 1.2e-4, -0.8e-4, 1],
       radialDistortion: 0.32,
       box: const SimBox(
-          left: 200, top: 120, right: 300, bottom: 220, shiftX: 14, shiftY: -6),
+        left: 200,
+        top: 120,
+        right: 300,
+        bottom: 220,
+        shiftX: 14,
+        shiftY: -6,
+        albedo: 0.85,
+      ),
       ambient: ambient,
       gain: gain,
       noiseSigma: noiseSigma,
@@ -179,6 +192,13 @@ class SimScene {
         var albedo = 1.0;
         if (texturedSurface) {
           albedo = ((u ~/ 40) + (v ~/ 40)).isEven ? 0.6 : 1.0;
+        }
+        final b = box;
+        final boxAlbedo = b?.albedo;
+        if (b != null &&
+            boxAlbedo != null &&
+            b.contains(u.toDouble(), v.toDouble())) {
+          albedo = boxAlbedo;
         }
         var level = ambient + albedo * gain * light / 255.0;
         if (noiseSigma > 0) level += _gaussian() * noiseSigma;

@@ -1,5 +1,6 @@
 import 'package:calib_core/calib_core.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:promap_app/cloud/surface_finder.dart';
 import 'package:promap_app/devices/output_controller.dart';
 import 'package:promap_app/devices/simulated_camera.dart';
 import 'package:promap_app/workbench.dart';
@@ -27,7 +28,7 @@ void main() {
   test('find surfaces adds coloured surfaces as one undo step', () async {
     final bench = Workbench(settle: Duration.zero);
     await bench.startScan();
-    bench.findSurfaces();
+    await bench.findSurfaces();
 
     final names = [for (final s in bench.store.scene.surfaces) s.name];
     expect(names, containsAll(['Box top', 'Left wall', 'Right wall']));
@@ -65,4 +66,23 @@ void main() {
     int sum(GrayImage image) => image.data.fold(0, (a, b) => a + b);
     expect(sum(lit), greaterThan(sum(dark) * 2));
   });
+
+  test('a finder error shows its message and changes nothing', () async {
+    final bench = Workbench(settle: Duration.zero, finder: _FailingFinder());
+    await bench.startScan();
+    await bench.findSurfaces();
+
+    expect(bench.status, 'Backend down');
+    expect(bench.store.scene.surfaces, isEmpty);
+    expect(bench.finding, isFalse);
+  });
+}
+
+class _FailingFinder implements SurfaceFinder {
+  @override
+  String get description => 'failing test finder';
+
+  @override
+  Future<SurfaceFinderResult> find(GrayImage photo) async =>
+      throw const SurfaceFinderException('Backend down');
 }

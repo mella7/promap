@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:mapping_core/mapping_core.dart';
 import 'package:scene_core/scene_core.dart';
 
+import 'cloud/surface_finder.dart';
 import 'devices/output_controller.dart';
 import 'devices/simulated_camera.dart';
 import 'scan/scan_controller.dart';
@@ -20,7 +21,13 @@ class Workbench extends ChangeNotifier {
   final OutputController output = OutputController(320, 240);
   final ScanController scan = ScanController();
 
-  Workbench({this.settle = const Duration(milliseconds: 30)}) {
+  /// Where "Find surfaces" gets its masks: the backend or the demo shapes.
+  final SurfaceFinder finder;
+
+  Workbench({
+    this.settle = const Duration(milliseconds: 30),
+    SurfaceFinder? finder,
+  }) : finder = finder ?? SurfaceFinder.fromEnvironment() {
     _usePreset(SimPreset.normal);
   }
 
@@ -31,6 +38,7 @@ class Workbench extends ChangeNotifier {
   CorrespondenceMap? _map;
   QualityReport? _report;
   String _status = '';
+  bool _finding = false;
 
   SimPreset get preset => _preset;
   SimulatedCamera get camera => _camera;
@@ -46,8 +54,14 @@ class Workbench extends ChangeNotifier {
   String get status => _status;
   bool get calibrated => _map != null;
 
+  /// True while waiting for surfaces.
+  bool get finding => _finding;
+
+  /// True while scanning or finding surfaces. Most buttons are off then.
+  bool get busy => scan.busy || _finding;
+
   void setPreset(SimPreset preset) {
-    if (scan.busy) return;
+    if (busy) return;
     _usePreset(preset);
     notifyListeners();
   }
@@ -69,7 +83,7 @@ class Workbench extends ChangeNotifier {
 
   /// Lights the whole projection so the camera view shows the room.
   void showWhite() {
-    if (scan.busy) return;
+    if (busy) return;
     output.showWhite();
     _refreshCamera();
     notifyListeners();
@@ -77,14 +91,14 @@ class Workbench extends ChangeNotifier {
 
   /// Back to the mapped scene after [showWhite].
   void showScene() {
-    if (scan.busy || !calibrated) return;
+    if (busy || !calibrated) return;
     output.showScene(_store.scene);
     _refreshCamera();
     notifyListeners();
   }
 
   Future<void> startScan() async {
-    if (scan.busy) return;
+    if (busy) return;
     _status = 'Scanning. Keep the phone and projector still.';
     _map = null;
     output.setDot(null);
@@ -139,26 +153,43 @@ class Workbench extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Turns the demo masks into surfaces, as one undo step.
-  ///
-  /// The masks stand in for what segmentation will return in step 4.
-  void findSurfaces() {
+  /// Takes a photo under white light, asks [finder] for surfaces and adds
+  /// them to the scene as one undo step.
+  Future<void> findSurfaces() async {
     final map = _map;
-    if (map == null || scan.busy) return;
-    final adds = surfaceOpsFromMasks(_store.scene, map, demoMasks(_camera));
-    if (adds.isEmpty) {
-      _status = 'No surfaces found.';
-      notifyListeners();
-      return;
-    }
-    final ops = <SceneOp>[...adds];
-    for (var i = 0; i < adds.length; i++) {
-      ops.add(SetContent(adds[i].surface.id,
-          ColorContent(surfacePalette[i % surfacePalette.length])));
-    }
-    _store.applyAll(ops, label: 'Find surfaces');
-    _status = 'Found ${adds.length} surfaces.';
+    if (map == null || busy) return;
+    _finding = true;
+    _status = 'Taking a photo under white light...';
     notifyListeners();
+    try {
+      output.showWhite();
+      final photo = await _camera.capture();
+      output.showScene(_store.scene);
+      _refreshCamera();
+      _status = 'Looking for surfaces (${finder.description})...';
+      notifyListeners();
+
+      final result = await finder.find(photo);
+      final adds = surfaceOpsFromMasks(_store.scene, map, result.masks);
+      if (adds.isEmpty) {
+        _status = 'No surfaces found (model: ${result.model}).';
+        return;
+      }
+      final ops = <SceneOp>[...adds];
+      for (var i = 0; i < adds.length; i++) {
+        ops.add(SetContent(adds[i].surface.id,
+            ColorContent(surfacePalette[i % surfacePalette.length])));
+      }
+      _store.applyAll(ops, label: 'Find surfaces');
+      _status = 'Found ${adds.length} surfaces (model: ${result.model}).';
+    } on SurfaceFinderException catch (error) {
+      output.showScene(_store.scene);
+      _refreshCamera();
+      _status = error.message;
+    } finally {
+      _finding = false;
+      notifyListeners();
+    }
   }
 
   void undo() => _store.undo();
@@ -174,17 +205,4 @@ class Workbench extends ChangeNotifier {
   void _refreshCamera() {
     _cameraFrame = _camera.captureNow();
   }
-}
-
-/// Camera-space rectangles over the simulated room: the top of the box and
-/// two patches of wall.
-List<CameraMask> demoMasks(SimulatedCamera camera) {
-  BinaryMask rect(int left, int top, int right, int bottom) =>
-      BinaryMask.rectangle(
-          camera.width, camera.height, left, top, right, bottom);
-  return [
-    CameraMask(rect(210, 130, 290, 210), name: 'Box top', label: 'box'),
-    CameraMask(rect(60, 60, 180, 300), name: 'Left wall', label: 'wall'),
-    CameraMask(rect(310, 70, 400, 290), name: 'Right wall', label: 'wall'),
-  ];
 }

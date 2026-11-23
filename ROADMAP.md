@@ -28,7 +28,7 @@ Three points where I stop and decide if it's worth going on:
 | 1. Calibration core | Done, 25 tests passing |
 | 2. Scan app | App shell runs on the laptop with the simulator. Phone part waiting on hardware |
 | 3. Scene and renderer | Scene core done, 37 tests passing. Renderer not started |
-| 4. Cloud service and auto surfaces | Mask to surface code done (mapping_core, 23 tests passing). Backend not started |
+| 4. Cloud service and auto surfaces | Backend runs with fake models, app calls it. Mask to surface code done. Real models not picked yet |
 | 5. Effect library | Not started |
 | 6. AI generation | Not started |
 | 7. Release polish | Not started |
@@ -81,6 +81,7 @@ The app shell already runs on the laptop (`app/`, `flutter run -d linux`) with t
 - [ ] Pick exposure automatically from the white frame before starting
 - [x] Run the calib_core decoder on the frames and show the quality report
 - [ ] Clear messages when a scan fails: room too bright, camera overexposed, projector out of view
+- [ ] Add the INTERNET permission to the Android manifest so the app can reach the backend
 - [x] Tap to light: tap in the camera view, a dot shows up at that spot (simulator)
 - [ ] Check pass: project a dot grid through the map and measure how far off it lands
 - [ ] Record 2 or 3 real capture sets and add them to the calib_core tests
@@ -115,12 +116,15 @@ Needs: step 2 for the renderer and drawing. The scene core needed nothing.
 
 Small backend that finds the surfaces so nobody has to draw polygons. The backend half can start any time after step 1.
 
-- [ ] FastAPI service with one job endpoint: image in, results out, nothing stored
-- [ ] Segmentation behind an interface so I can swap models later
-- [ ] Depth estimation behind the same kind of interface
-- [ ] Fake versions of both that return canned results, so the app can be tested offline
-- [ ] API keys and model settings in `.env`, never in code
-- [ ] App side: take one photo under flat white projector light and send it
+- [x] FastAPI service: image in, results out, nothing stored (`backend/`, API in `docs/backend-api.md`)
+- [x] Segmentation behind an interface so I can swap models later
+- [x] Depth estimation behind the same kind of interface
+- [x] Fake versions of both that return canned results, so the app can be tested offline
+- [x] API keys and model settings in `.env`, never in code
+- [x] App side: take one photo under flat white projector light and send it
+- [ ] Pick and plug in a real segmentation model (check the licence first)
+- [ ] Pick and plug in a real depth model
+- [ ] Deploy the backend somewhere the phone can reach (with the API key on)
 - [x] Map the returned masks from camera space into projector space using the calibration (`packages/mapping_core`)
 - [x] Clean up each mask into a surface: simplify the outline, drop tiny bits
 - [x] Run the mapping_core tests

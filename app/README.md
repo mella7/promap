@@ -25,6 +25,17 @@ folders and a few config files). If `git status` shows it changed
 flutter run -d linux
 ```
 
+That uses built-in demo shapes for "Find surfaces". To go through the
+backend instead, start it (see `backend/README.md`) and run:
+
+```
+flutter run -d linux --dart-define=PROMAP_BACKEND=http://127.0.0.1:8000
+```
+
+If the backend has an API key set, add `--dart-define=PROMAP_API_KEY=...`.
+That's fine for development only: anything passed with `--dart-define` ends
+up inside the app.
+
 ## What you can do
 
 The window has the camera view on the left and the projector output on the
@@ -35,9 +46,11 @@ right.
 2. **Tap the camera view.** A dot appears on the projector output at the
    matching spot, and in the camera view you can see it land on the box or
    the wall.
-3. **Find surfaces.** Three demo masks (the box top and two wall patches)
-   go through `mapping_core` and show up as coloured surfaces. Undo and redo
-   work on the whole step.
+3. **Find surfaces.** The app takes a photo under white light and asks for
+   surfaces: from the backend if one is set, from built-in demo shapes
+   otherwise. The masks go through `mapping_core` and show up as coloured
+   surfaces. Undo and redo work on the whole step. If the backend is down
+   you get a message saying so, and nothing changes.
 4. **Try the presets.** Bright room, weak projector, overexposed camera and
    camera aimed away each fail with their own message.
 5. **White light / Show mapping** switches between lighting the room and
@@ -51,6 +64,8 @@ right.
 | `lib/devices/output_controller.dart` | What the projector shows: white, a pattern or the scene |
 | `lib/devices/simulated_camera.dart` | Fake camera that photographs the output through the simulator, plus the presets |
 | `lib/scan/scan_controller.dart` | Shows each pattern, waits, captures, then decodes in a background isolate |
+| `lib/cloud/surface_finder.dart` | Where surfaces come from: the backend, or demo shapes |
+| `lib/cloud/png.dart`, `rle.dart` | Tiny PNG encoder for uploads, decoder for the backend's masks |
 | `lib/workbench.dart` | Ties camera, output, scan, calibration and scene store together |
 | `lib/ui/` | Camera view, output view and the page |
 
@@ -65,4 +80,6 @@ flutter test
 
 They run a full simulated scan, check that a tap lands within a pixel of the
 true spot, find surfaces and undo them, check the bright-room failure, and
-render the page once.
+render the page once. The cloud tests check the PNG encoder, decode a real
+backend reply (`test/fixtures/segment_response.json`) and talk to a small
+local HTTP server, including the error cases.

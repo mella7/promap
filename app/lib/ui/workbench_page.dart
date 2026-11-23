@@ -100,7 +100,7 @@ class _Controls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final busy = bench.scan.busy;
+    final busy = bench.busy;
     final store = bench.store;
     final report = bench.report;
     final textTheme = Theme.of(context).textTheme;
@@ -155,13 +155,18 @@ class _Controls extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        if (busy) ...[
+        if (bench.scan.busy) ...[
           LinearProgressIndicator(value: bench.scan.progress),
           const SizedBox(height: 4),
           Text(bench.scan.phase, style: textTheme.bodySmall),
-        ] else
+        ] else ...[
+          if (bench.finding) ...[
+            const LinearProgressIndicator(),
+            const SizedBox(height: 4),
+          ],
           Text(bench.status, style: textTheme.bodyMedium),
-        if (report != null && !busy)
+        ],
+        if (report != null && !bench.scan.busy)
           Text(
             'Camera coverage ${(report.cameraCoverage * 100).toStringAsFixed(0)}%, '
             'projector coverage ${(report.projectorCoverage * 100).toStringAsFixed(0)}%, '
@@ -174,6 +179,10 @@ class _Controls extends StatelessWidget {
             'Surfaces: ${[for (final s in surfaces) s.name].join(', ')}',
             style: textTheme.bodySmall,
           ),
+        Text(
+          'Surfaces come from: ${bench.finder.description}',
+          style: textTheme.bodySmall,
+        ),
       ],
     );
   }
