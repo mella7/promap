@@ -11,6 +11,13 @@ class Health(BaseModel):
     segmenter: str
     depth: str
     assistant: str
+    # False while the models load at startup (PROMAP_PRELOAD), or if that failed.
+    ready: bool
+
+
+class Ready(BaseModel):
+    ready: bool
+    detail: str
 
 
 class Rle(BaseModel):

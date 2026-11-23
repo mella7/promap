@@ -106,4 +106,44 @@ void main() {
     expect(bench.store.history.length, steps);
     expect(bench.status, contains("don't touch"));
   });
+
+  test('split: two taps cut a surface in two, as one undo step', () async {
+    final bench = await mapped();
+    final id = idOf(bench, 'Left wall');
+    final before = bench.store.scene.surfaces.length;
+    final area = bench.store.scene.surfaceById(id)!.area;
+
+    bench.startSplit(id);
+    expect(bench.splitting, id);
+    bench.tapCamera(120, 80);
+    expect(bench.status, contains('second point'));
+    bench.tapCamera(120, 280);
+
+    final scene = bench.store.scene;
+    expect(bench.splitting, isNull);
+    expect(scene.surfaces.length, before + 1);
+    final halves = [scene.surfaceById(id)!, scene.surfaces[scene.indexOf(id) + 1]];
+    expect(halves[1].name, 'Left wall 2');
+    expect(halves[1].label, 'wall');
+    expect(halves[0].area + halves[1].area, closeTo(area, area * 0.05));
+    expect(bench.store.history.last, 'Split "Left wall"');
+
+    bench.undo();
+    expect(bench.store.scene.surfaces.length, before);
+  });
+
+  test('split: a cut that misses keeps waiting, cancel leaves it alone',
+      () async {
+    final bench = await mapped();
+    final steps = bench.store.history.length;
+    bench.startSplit(idOf(bench, 'Left wall'));
+    bench.tapCamera(350, 100); // both taps on the right wall
+    bench.tapCamera(350, 250);
+
+    expect(bench.status, contains("doesn't cut"));
+    expect(bench.splitting, isNotNull);
+    bench.cancelSplit();
+    expect(bench.splitting, isNull);
+    expect(bench.store.history.length, steps);
+  });
 }

@@ -1,0 +1,30 @@
+# The backend with the real models, on CPU:
+#
+#   docker compose up --build
+#
+# Settings come from .env in this folder (copy .env.example), with the
+# defaults below. Model weights are downloaded once into the "models"
+# volume, so restarts are quick.
+services:
+  backend:
+    build:
+      context: .
+      args:
+        EXTRAS: ml
+    environment:
+      PROMAP_SEGMENTER: ${PROMAP_SEGMENTER:-sam2_planes}
+      PROMAP_DEPTH: ${PROMAP_DEPTH:-depth_anything_v2}
+      PROMAP_SAM_POINTS_PER_SIDE: ${PROMAP_SAM_POINTS_PER_SIDE:-16}
+      PROMAP_DEVICE: ${PROMAP_DEVICE:-cpu}
+      PROMAP_ASSISTANT: ${PROMAP_ASSISTANT:-rules}
+      PROMAP_API_KEY: ${PROMAP_API_KEY:-}
+      PROMAP_PRELOAD: "1"
+    ports:
+      # Only this machine. Put a TLS proxy in front before opening it up.
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - models:/models
+    restart: unless-stopped
+
+volumes:
+  models:

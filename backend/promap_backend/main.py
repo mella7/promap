@@ -5,9 +5,12 @@ import base64
 import hmac
 import io
 import json
+import logging
+import threading
+from contextlib import asynccontextmanager
 
 import numpy as np
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response
 from PIL import Image
 from pydantic import ValidationError
 from starlette.concurrency import run_in_threadpool
@@ -24,11 +27,46 @@ from .schemas import (
     DepthResponse,
     Health,
     Mask,
+    Ready,
     Rle,
     SegmentResponse,
 )
 
 MAX_JSON_BYTES = 1_000_000
+
+log = logging.getLogger("promap")
+
+
+class _Warmup:
+    """Loads the models in a background thread when PROMAP_PRELOAD is on, so
+    /health answers straight away and /ready says when the models are in."""
+
+    def __init__(self, models: list, enabled: bool):
+        self.models = models
+        self.done = threading.Event()
+        self.error = ""
+        if not enabled:
+            self.done.set()
+
+    def start(self) -> None:
+        if not self.done.is_set():
+            threading.Thread(target=self._run, name="promap-warmup", daemon=True).start()
+
+    def _run(self) -> None:
+        try:
+            for model in self.models:
+                log.info("Loading %s", model.name)
+                model.load()
+            log.info("Models ready")
+        except Exception as error:  # noqa: BLE001 - reported on /ready instead
+            self.error = str(error)
+            log.error("Loading models failed: %s", error)
+        finally:
+            self.done.set()
+
+    @property
+    def ready(self) -> bool:
+        return self.done.is_set() and not self.error
 
 
 def create_app(
@@ -44,7 +82,14 @@ def create_app(
     segmenter = segmenter or load_segmenter(settings, depth_model)
     assistant = assistant or load_assistant(settings.assistant)
 
-    app = FastAPI(title="promap backend", version=__version__)
+    warmup = _Warmup([depth_model, segmenter], settings.preload)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        warmup.start()
+        yield
+
+    app = FastAPI(title="promap backend", version=__version__, lifespan=lifespan)
 
     def check_key(x_api_key: str | None = Header(default=None)) -> None:
         if not settings.api_key:
@@ -80,7 +125,19 @@ def create_app(
             segmenter=segmenter.name,
             depth=depth_model.name,
             assistant=assistant.name,
+            ready=warmup.ready,
         )
+
+    @app.get("/ready", response_model=Ready)
+    def ready(response: Response) -> Ready:
+        """200 once the models are loaded, 503 before that or if loading
+        failed. Point a host's readiness check here."""
+        if warmup.ready:
+            return Ready(ready=True, detail="Models loaded" if settings.preload else "Lazy loading")
+        response.status_code = 503
+        if warmup.error:
+            return Ready(ready=False, detail=f"Loading the models failed: {warmup.error}")
+        return Ready(ready=False, detail="Loading the models")
 
     @app.post("/v1/segment", response_model=SegmentResponse, dependencies=[Depends(check_key)])
     async def segment(request: Request) -> SegmentResponse:

@@ -15,8 +15,18 @@ same value in the `X-API-Key` header. A missing or wrong key gets `401`.
 ## GET /health
 
 ```json
-{"status": "ok", "version": "0.1.0", "segmenter": "fake", "depth": "fake"}
+{"status": "ok", "version": "0.1.0", "segmenter": "fake", "depth": "fake",
+ "assistant": "rules", "ready": true}
 ```
+
+`ready` is false while the models load at startup (`PROMAP_PRELOAD=1`) or
+if loading failed.
+
+## GET /ready
+
+For a host's readiness check. 200 with `{"ready": true, "detail": "..."}`
+once the models are loaded (or right away without preloading). 503 with the
+reason while loading, or when loading failed.
 
 ## POST /v1/segment
 

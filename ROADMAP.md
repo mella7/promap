@@ -134,13 +134,14 @@ Small backend that finds the surfaces so nobody has to draw polygons. The backen
 - [ ] Try sam2_planes on more rooms, with the projector's white light on
 - [ ] Later: get planes from the projector scan itself, it measures the real geometry
 - [ ] Names for surfaces ("window", "box"): SAM gives none. Look at SAM 3 text prompts (its own Meta licence, allows commercial use) or a small labelling step
-- [ ] Deploy the backend somewhere the phone can reach (with the API key on)
+- [x] Ready to deploy: Docker image with the real models (CPU), compose file, models load at startup, `/ready` for health checks
+- [ ] Deploy the backend somewhere the phone can reach (with the API key on). Needs a host picked
 - [x] Map the returned masks from camera space into projector space using the calibration (`packages/mapping_core`)
 - [x] Clean up each mask into a surface: simplify the outline, drop tiny bits
 - [x] Run the mapping_core tests
 - [ ] Use depth to split a mask into flat faces where it bends
 - [x] Merge, rename, hide and delete surfaces in the UI, all undoable
-- [ ] Split a surface in two
+- [x] Split a surface in two: tap two points in the camera view to draw the cut
 - [x] Auto map: scan, find surfaces and theme them in one tap
 
 Demo: scan two boxes and a wall, each face shows up as its own named surface and lights up when I tap it.

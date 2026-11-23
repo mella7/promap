@@ -127,11 +127,37 @@ If the ml extra isn't installed, the server still starts and the fake
 models work. Asking for a real one returns 503 with a message saying what
 to install.
 
+## Run it in Docker
+
+With the real models, on CPU, the way it would run on a server:
+
+```
+cp .env.example .env    # then set PROMAP_API_KEY to a long random string
+docker compose up --build
+```
+
+`compose.yaml` turns on `sam2_planes`, Depth Anything and `PROMAP_PRELOAD`,
+uses 16 SAM points, and keeps the model weights in a volume so they're
+downloaded once. The port is only open on this machine; put a TLS proxy in
+front before exposing it. `curl localhost:8000/ready` says 503 while the
+models load and 200 once they're in.
+
+Without the real models (small image, what CI builds):
+
+```
+docker build -t promap-backend .
+docker run --rm -p 127.0.0.1:8000:8000 promap-backend
+```
+
+For a GPU host, build with `--build-arg TORCH_INDEX=<a CUDA index from
+pytorch.org>` and set `PROMAP_DEVICE=cuda` and `PROMAP_POINTS_PER_BATCH=64`.
+
 ## Endpoints
 
 | Method and path | Body | Returns |
 | --- | --- | --- |
-| `GET /health` | | status, version, which models are loaded |
+| `GET /health` | | status, version, which models are set, whether they're ready |
+| `GET /ready` | | 200 when the models are loaded, 503 while loading or if loading failed |
 | `POST /v1/segment` | PNG or JPEG image as the raw body | surfaces as named masks |
 | `POST /v1/depth` | PNG or JPEG image as the raw body | relative depth as a 16-bit PNG |
 | `POST /v1/assistant` | JSON: the scene and a typed request | checked scene ops and a message |
@@ -147,6 +173,7 @@ All from environment variables, see `.env.example`.
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `PROMAP_SEGMENTER` | `fake` | `fake`, `sam2`, `planes` or `sam2_planes` |
+| `PROMAP_PRELOAD` | off | `1` loads the models when the server starts, so the first request isn't slow. `/ready` says when they're in |
 | `PROMAP_ASSISTANT` | `rules` | `rules`: understands short requests, no language model, free |
 | `PROMAP_DEPTH` | `fake` | `fake` or `depth_anything_v2` |
 | `PROMAP_SAM_MODEL` | `facebook/sam2.1-hiera-small` | Any SAM 2.x checkpoint on Hugging Face |

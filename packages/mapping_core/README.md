@@ -61,6 +61,13 @@ closes seams up to 3 pixels (neighbouring surfaces from a scan often have
 one), and traces the result again. It returns null when the two still don't
 touch, so the app can refuse instead of making a surface with two pieces.
 
+## Splitting a surface
+
+`splitOutline(outline, from, to, width, height)` cuts along the straight
+line through two points (it carries on past them), traces both sides and
+returns them larger first. It refuses when the line misses or one side
+would be a sliver. A side that falls into several pieces keeps its largest.
+
 ## Not here yet
 
 - Holes inside a surface are filled, not kept. A window frame with the glass

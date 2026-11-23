@@ -66,7 +66,9 @@ right.
    dots underneath. Sliders preview live and save one undo step when you
    let go. The frame rate shows in the corner of the output.
    - **Fix what the mapping got wrong.** With a surface selected: Rename,
-     Hide/Show, Delete, or Merge with another surface it touches (one outline
+     Hide/Show, Delete, Split (tap two points in the camera view, the
+     cut runs along the line through them), or Merge with another surface it
+     touches (one outline
      around both, the selected one's name and look). All of it is undoable.
 5. **Save / Open saved.** Writes the scene and the calibration to
    `~/promap-projects/last` and loads them back, so a mapping survives a

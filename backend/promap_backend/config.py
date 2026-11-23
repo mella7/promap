@@ -9,6 +9,8 @@ class Settings:
     segmenter: str = "fake"
     depth: str = "fake"
     assistant: str = "rules"
+    # Load the models when the server starts instead of on the first request.
+    preload: bool = False
     api_key: str = ""
     max_upload_bytes: int = 10_000_000
     max_image_side: int = 4096
@@ -31,6 +33,7 @@ class Settings:
             segmenter=env("PROMAP_SEGMENTER", defaults.segmenter),
             depth=env("PROMAP_DEPTH", defaults.depth),
             assistant=env("PROMAP_ASSISTANT", defaults.assistant),
+            preload=env("PROMAP_PRELOAD", "").strip().lower() in {"1", "true", "yes", "on"},
             api_key=env("PROMAP_API_KEY", defaults.api_key),
             max_upload_bytes=int(env("PROMAP_MAX_UPLOAD_BYTES", str(defaults.max_upload_bytes))),
             max_image_side=int(env("PROMAP_MAX_IMAGE_SIDE", str(defaults.max_image_side))),

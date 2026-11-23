@@ -219,6 +219,16 @@ class _Controls extends StatelessWidget {
                 onPressed: busy ? null : () => bench.deleteSurface(selected.id),
                 child: const Text('Delete'),
               ),
+              if (bench.splitting == null)
+                TextButton(
+                  onPressed: busy ? null : () => bench.startSplit(selected.id),
+                  child: const Text('Split'),
+                )
+              else
+                TextButton(
+                  onPressed: bench.cancelSplit,
+                  child: const Text('Cancel split'),
+                ),
               if (surfaces.length > 1)
                 DropdownButton<String>(
                   hint: const Text('Merge with'),

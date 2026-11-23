@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:calib_core/calib_core.dart';
 import 'package:effects/effects.dart';
@@ -55,6 +56,10 @@ class Workbench extends ChangeNotifier {
   bool _finding = false;
   bool _asking = false;
 
+  /// Surface being split, and the first point of the cut once tapped.
+  String? _splitting;
+  Vec2? _cutStart;
+
   SimPreset get preset => _preset;
   SimulatedCamera get camera => _camera;
   SceneStore get store => _store;
@@ -71,6 +76,9 @@ class Workbench extends ChangeNotifier {
 
   /// True while waiting for surfaces.
   bool get finding => _finding;
+
+  /// The surface waiting for a cut, while in split mode.
+  String? get splitting => _splitting;
 
   /// True while waiting for the assistant.
   bool get asking => _asking;
@@ -155,6 +163,10 @@ class Workbench extends ChangeNotifier {
       return;
     }
     final spot = cameraToProjector(map, x, y);
+    if (_splitting != null) {
+      _cutTap(spot == null ? null : Vec2(spot.x, spot.y));
+      return;
+    }
     if (spot == null) {
       output.setDot(null);
       output.select(null);
@@ -236,6 +248,82 @@ class Workbench extends ChangeNotifier {
     applyTheme(look);
     _status = 'Mapped ${_store.scene.surfaces.length} surfaces with '
         '"${look.name}". Tap a surface to change it.';
+    notifyListeners();
+  }
+
+  /// Starts split mode: the next two taps on the camera view draw the cut.
+  void startSplit(String surfaceId) {
+    final surface = _store.scene.surfaceById(surfaceId);
+    if (busy || surface == null || !calibrated) return;
+    _splitting = surfaceId;
+    _cutStart = null;
+    output.select(surfaceId);
+    _status = 'Tap two points in the camera view to cut "${surface.name}" '
+        'along the line through them.';
+    notifyListeners();
+  }
+
+  /// Leaves split mode without changing anything.
+  void cancelSplit() {
+    if (_splitting == null) return;
+    _splitting = null;
+    _cutStart = null;
+    output.setDot(null);
+    _status = 'Split cancelled.';
+    notifyListeners();
+  }
+
+  void _cutTap(Vec2? spot) {
+    final surface = _store.scene.surfaceById(_splitting!);
+    if (surface == null) {
+      _splitting = null;
+      _cutStart = null;
+      notifyListeners();
+      return;
+    }
+    if (spot == null) {
+      _status = "The projector can't reach that spot. Tap somewhere it lights.";
+      notifyListeners();
+      return;
+    }
+    final start = _cutStart;
+    if (start == null) {
+      _cutStart = spot;
+      output.setDot(Point(spot.x, spot.y));
+      _status = 'Now tap the second point of the cut.';
+      notifyListeners();
+      return;
+    }
+    final scene = _store.scene;
+    final halves = splitOutline(surface.vertices, start, spot,
+        scene.projectorWidth, scene.projectorHeight);
+    _cutStart = null;
+    output.setDot(null);
+    if (halves == null) {
+      _status = "That line doesn't cut \"${surface.name}\" into two usable "
+          'parts. Tap two new points.';
+      notifyListeners();
+      return;
+    }
+    final (big, small) = halves;
+    final index = scene.indexOf(surface.id);
+    _store.applyAll([
+      SetVertices(surface.id, big),
+      AddSurface(
+        Surface(
+          id: scene.nextSurfaceId(),
+          name: '${surface.name} 2',
+          label: surface.label,
+          vertices: small,
+          content: surface.content,
+          opacity: surface.opacity,
+          visible: surface.visible,
+        ),
+        index: index + 1,
+      ),
+    ], label: 'Split "${surface.name}"');
+    _splitting = null;
+    _status = 'Split "${surface.name}" in two.';
     notifyListeners();
   }
 
