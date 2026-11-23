@@ -43,9 +43,18 @@ commercial app:
 | `PROMAP_SEGMENTER=sam2` | SAM 2.1 small (`facebook/sam2.1-hiera-small`) | Finds every surface in the photo. No names, so they come back as "Surface 1", "Surface 2" |
 | `PROMAP_DEPTH=depth_anything_v2` | Depth Anything V2 Small | Relative depth, closer is larger |
 
-SAM returns lots of overlapping masks. `models/postprocess.py` cleans them
-up: drops unsure, tiny and huge ones, removes duplicates, cuts each box out
-of the wall behind it so surfaces don't overlap, and keeps the 12 largest.
+SAM is driven by our own loop in `models/sam_auto.py`, not the transformers
+mask-generation pipeline. The pipeline placed its prompt grid wrong on
+non-square photos (on a portrait photo only the left 73% got prompts) and
+blew every mask up to full size before filtering, which was slow and used
+gigabytes. Ours encodes the photo once, spreads a grid of prompts over all
+of it, drops unsure (`PROMAP_SAM_MIN_IOU`) and blurry
+(`PROMAP_SAM_MIN_STABILITY`) masks and repeats at SAM's 256x256 size, and
+only scales up the survivors.
+
+Then `models/postprocess.py` turns them into surfaces: drops tiny and huge
+ones, cuts each box out of the wall behind it so surfaces don't overlap, and
+keeps the 12 largest.
 
 ### Install (CPU laptop)
 
@@ -84,14 +93,20 @@ one on a CPU is often a bit slower. For SAM, `--points 16` and
 PROMAP_SEGMENTER=sam2 PROMAP_DEPTH=depth_anything_v2 uvicorn promap_backend.main:app
 ```
 
-On a CPU, segmenting a whole photo can take a while. SAM prompts a grid of
-`PROMAP_SAM_POINTS_PER_SIDE` x `PROMAP_SAM_POINTS_PER_SIDE` points (default
-32, so 1024 prompts), and the time grows with that. 16 is about 4x faster and
-still finds walls, boards and boxes; it may miss small things. Lowering
-`PROMAP_MODEL_MAX_SIDE` (default 1024) helps a bit too.
-`PROMAP_POINTS_PER_BATCH` only trades memory for speed, it doesn't change the
-result. With an NVIDIA GPU set `PROMAP_DEVICE=cuda` and install the normal
-torch build.
+On a CPU, SAM is slow. Encoding the photo takes a couple of seconds, then
+every prompt costs about 0.1 s in SAM's mask decoder. The grid is
+`PROMAP_SAM_POINTS_PER_SIDE` squared: 32 is 1024 prompts (about 2 minutes on
+a laptop), 16 is 256 (under 30 s) and may miss small things. Use 16 on a
+laptop; on a GPU 32 takes a few seconds.
+
+Prompts go through in batches of `PROMAP_POINTS_PER_BATCH` (default 16). A
+batch of 64 needs about 2.5 GB on top of the model, 16 needs about 0.5 GB.
+Same result either way. With an NVIDIA GPU set `PROMAP_DEVICE=cuda`,
+install the normal torch build and raise the batch to 64.
+
+The CLI prints where masks drop out, like
+`256 prompts -> 768 masks -> 300 sure -> 120 stable -> 30 distinct`. If a
+wall you expected is missing, try `--min-iou 0.6 --min-stability 0.8`.
 
 The app's simulator photo is a checker wall, so SAM will happily find every
 checker square in it. That's expected: judge the model on real photos with
@@ -125,7 +140,10 @@ All from environment variables, see `.env.example`.
 | `PROMAP_DEPTH_MODEL` | `depth-anything/Depth-Anything-V2-Small-hf` | Keep to Small: Base and Large are non-commercial |
 | `PROMAP_DEVICE` | `cpu` | `cpu` or `cuda` |
 | `PROMAP_MODEL_MAX_SIDE` | 1024 | Photos are shrunk to this before SAM |
-| `PROMAP_POINTS_PER_BATCH` | 64 | Lower uses less memory |
+| `PROMAP_SAM_POINTS_PER_SIDE` | 32 | SAM prompt grid; 16 is 4x faster, may miss small things |
+| `PROMAP_SAM_MIN_IOU` | 0.75 | Drop masks SAM itself scores lower |
+| `PROMAP_SAM_MIN_STABILITY` | 0.9 | Drop masks with blurry edges |
+| `PROMAP_POINTS_PER_BATCH` | 16 | Prompts per batch; 64 needs about 2.5 GB more memory |
 | `PROMAP_API_KEY` | empty | If set, requests need it in the `X-API-Key` header |
 | `PROMAP_MAX_UPLOAD_BYTES` | 10000000 | Larger uploads get 413 |
 | `PROMAP_MAX_IMAGE_SIDE` | 4096 | Larger images get 400, checked before decoding |

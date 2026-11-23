@@ -1,6 +1,7 @@
 """Real models through Hugging Face transformers.
 
-- SAM 2.1 (Apache 2.0) for "segment everything".
+- SAM 2.1 (Apache 2.0) for "segment everything", driven by our own loop in
+  sam_auto.py rather than the transformers pipeline (see there for why).
 - Depth Anything V2 Small (Apache 2.0) for relative depth.
 
 Both load lazily on first use, so the server starts fast and the fake
@@ -18,6 +19,7 @@ from PIL import Image
 
 from .base import DepthResult, MaskResult
 from .postprocess import clean_masks
+from .sam_auto import AutoMaskOptions, AutoMaskStats, Predictor, generate_masks
 
 
 class ModelUnavailable(RuntimeError):
@@ -46,18 +48,53 @@ def _shrink(image: np.ndarray, max_side: int) -> Image.Image:
     return pil.resize((round(width * scale), round(height * scale)), Image.Resampling.BILINEAR)
 
 
-def _to_list(values: Any) -> list[float]:
-    if values is None:
-        return []
-    if hasattr(values, "tolist"):
-        values = values.tolist()
-    return [float(v) for v in values]
-
-
 def _to_numpy(value: Any) -> np.ndarray:
     if hasattr(value, "detach"):
-        value = value.detach().cpu().numpy()
+        value = value.detach().float().cpu().numpy()
     return np.asarray(value)
+
+
+class _TorchSam2:
+    """SAM 2 straight from transformers' Sam2Model, no pipeline."""
+
+    def __init__(self, model: str, device: str):
+        try:
+            import torch
+            from transformers import Sam2Model, Sam2Processor
+        except ImportError as error:
+            raise ModelUnavailable(
+                "The real models need the ml extra: pip install -e '.[ml]' (see backend/README.md)"
+            ) from error
+        try:
+            self.processor = Sam2Processor.from_pretrained(model).image_processor
+            self.model = Sam2Model.from_pretrained(model).to(device).eval()
+        except Exception as error:  # download or load failure, missing torchvision
+            raise ModelUnavailable(f"Could not load {model}: {error}") from error
+        self.torch = torch
+        self.device = device
+        # SAM 2 squashes every photo to this square, so prompts are x and y
+        # in 0..1 times this, whatever the photo's shape.
+        self.input_side = int(self.processor.size["height"])
+        self.embeddings = None
+
+    def set_image(self, image: Image.Image) -> None:
+        pixels = self.processor(images=image, return_tensors="pt")["pixel_values"]
+        with self.torch.inference_mode():
+            self.embeddings = self.model.get_image_embeddings(pixels.to(self.device))
+
+    def predict(self, points: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        torch = self.torch
+        prompts = torch.from_numpy(points * self.input_side).float().to(self.device)
+        prompts = prompts[None, :, None, :]  # one image, n prompts, one point each
+        labels = torch.ones(prompts.shape[:3], dtype=torch.int, device=self.device)
+        with torch.inference_mode():
+            out = self.model(
+                image_embeddings=self.embeddings,
+                input_points=prompts,
+                input_labels=labels,
+                multimask_output=True,
+            )
+        return _to_numpy(out.pred_masks[0]), _to_numpy(out.iou_scores[0])
 
 
 class SamSegmenter:
@@ -69,52 +106,45 @@ class SamSegmenter:
         device: str = "cpu",
         *,
         max_side: int = 1024,
-        points_per_batch: int = 64,
+        points_per_batch: int = 16,
         points_per_side: int = 32,
-        generator: Callable[..., Any] | None = None,
+        min_iou: float = 0.75,
+        min_stability: float = 0.9,
+        predictor: Predictor | None = None,
     ):
         self.model = model
         self.device = device
         self.max_side = max_side
         self.points_per_batch = points_per_batch
         self.points_per_side = points_per_side
-        self._generator = generator
+        self.min_iou = min_iou
+        self.min_stability = min_stability
+        self._predictor = predictor
         self._lock = threading.Lock()
+        self.last_stats: AutoMaskStats | None = None
 
     def load(self) -> None:
         """Download and load the weights now instead of on the first photo."""
         with self._lock:
-            if self._generator is None:
-                self._generator = _pipeline("mask-generation", self.model, self.device)
+            if self._predictor is None:
+                self._predictor = _TorchSam2(self.model, self.device)
 
     def segment(self, image: np.ndarray) -> list[MaskResult]:
         height, width = image.shape[:2]
-        small = _shrink(image, self.max_side)
+        options = AutoMaskOptions(
+            points_per_side=self.points_per_side,
+            points_per_batch=self.points_per_batch,
+            min_iou=self.min_iou,
+            min_stability=self.min_stability,
+        )
         self.load()
         with self._lock:
-            # SAM drops a points_per_side x points_per_side grid of prompts on
-            # the photo. The time grows with the square, so 16 is about 4x
-            # faster than 32 and still finds walls, boards and boxes.
-            output = self._generator(
-                small,
-                points_per_batch=self.points_per_batch,
-                points_per_crop=self.points_per_side,
+            masks, scores = generate_masks(
+                self._predictor, _shrink(image, self.max_side), (height, width), options
             )
-
-        masks = []
-        for raw in output["masks"]:
-            mask = _to_numpy(raw).astype(bool)
-            mask = np.squeeze(mask)
-            if mask.shape != (height, width):
-                resized = Image.fromarray(mask.astype(np.uint8) * 255).resize(
-                    (width, height), Image.Resampling.NEAREST
-                )
-                mask = np.asarray(resized) > 127
-            masks.append(mask)
-        scores = _to_list(output.get("scores"))
-        if len(scores) != len(masks):
-            scores = [1.0] * len(masks)
-        return clean_masks(masks, scores)
+        self.last_stats = options.stats
+        # Scores were already filtered above; clean_masks only shapes surfaces.
+        return clean_masks(masks, scores, min_score=0.0)
 
 
 class DepthAnythingEstimator:

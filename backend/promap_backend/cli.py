@@ -60,6 +60,10 @@ def main(argv: list[str] | None = None) -> int:
         "--points", type=int, help="SAM prompt grid per side (default 32; 16 is ~4x faster)"
     )
     parser.add_argument("--max-side", type=int, help="shrink the photo to this before SAM")
+    parser.add_argument("--min-iou", type=float, help="drop SAM masks it scores below this")
+    parser.add_argument(
+        "--min-stability", type=float, help="drop SAM masks with blurrier edges than this"
+    )
     parser.add_argument("--runs", type=int, default=1, help="run this many times to time it")
     args = parser.parse_args(argv)
 
@@ -70,6 +74,10 @@ def main(argv: list[str] | None = None) -> int:
         settings = replace(settings, sam_points_per_side=args.points)
     if args.max_side:
         settings = replace(settings, model_max_side=args.max_side)
+    if args.min_iou is not None:
+        settings = replace(settings, sam_min_iou=args.min_iou)
+    if args.min_stability is not None:
+        settings = replace(settings, sam_min_stability=args.min_stability)
 
     try:
         image = read_image(args.photo.read_bytes(), settings.max_image_side)
@@ -95,6 +103,9 @@ def main(argv: list[str] | None = None) -> int:
         if args.task == "segment":
             out = args.out or args.photo.with_suffix(".surfaces.png")
             overlay(image, [r.mask for r in result]).save(out)
+            stats = getattr(model, "last_stats", None)
+            if stats is not None:
+                print(f"  {stats.describe()}")
             print(f"{len(result)} surfaces")
             for r in result:
                 share = 100 * r.mask.sum() / (width * height)

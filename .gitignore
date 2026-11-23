@@ -9,3 +9,7 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+
+# Local test photos and CLI output
+backend/*.jpg
+backend/*.png

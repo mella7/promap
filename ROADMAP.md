@@ -125,8 +125,11 @@ Small backend that finds the surfaces so nobody has to draw polygons. The backen
 - [x] Real segmentation model: SAM 2.1 small (Apache 2.0), with clean-up so surfaces don't overlap
 - [x] Real depth model: Depth Anything V2 Small (Apache 2.0)
 - [x] Depth on a real bedroom photo: looks right (bed closest, corner furthest, shelf and walls separate)
-- [ ] SAM on a real photo (first try failed: torchvision was missing)
-- [ ] Real run times on my laptop CPU, load and run counted apart
+- [x] Depth speed on my laptop CPU: loads in 6 s, 1 s per photo
+- [x] SAM first real run: 128 s, found only ceiling, frame, photo grid and a pillow. Walls missing
+- [x] Replace the transformers SAM pipeline with our own loop: its prompt grid missed the right quarter of portrait photos and it ran out of memory
+- [ ] SAM again with our loop: do the walls, shelf and blind show up? Tune the thresholds
+- [ ] Big flat surfaces (walls, ceiling, floor) from depth or the scan itself instead of SAM
 - [ ] Names for surfaces ("window", "box"): SAM gives none. Look at SAM 3 text prompts (its own Meta licence, allows commercial use) or a small labelling step
 - [ ] Deploy the backend somewhere the phone can reach (with the API key on)
 - [x] Map the returned masks from camera space into projector space using the calibration (`packages/mapping_core`)

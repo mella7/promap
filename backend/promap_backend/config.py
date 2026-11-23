@@ -17,8 +17,10 @@ class Settings:
     depth_model: str = "depth-anything/Depth-Anything-V2-Small-hf"
     device: str = "cpu"
     model_max_side: int = 1024
-    points_per_batch: int = 64
+    points_per_batch: int = 16
     sam_points_per_side: int = 32
+    sam_min_iou: float = 0.75
+    sam_min_stability: float = 0.9
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -37,5 +39,9 @@ class Settings:
             points_per_batch=int(env("PROMAP_POINTS_PER_BATCH", str(defaults.points_per_batch))),
             sam_points_per_side=int(
                 env("PROMAP_SAM_POINTS_PER_SIDE", str(defaults.sam_points_per_side))
+            ),
+            sam_min_iou=float(env("PROMAP_SAM_MIN_IOU", str(defaults.sam_min_iou))),
+            sam_min_stability=float(
+                env("PROMAP_SAM_MIN_STABILITY", str(defaults.sam_min_stability))
             ),
         )

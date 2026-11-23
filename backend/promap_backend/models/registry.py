@@ -15,6 +15,8 @@ _SEGMENTERS: dict[str, Callable[[Settings], Segmenter]] = {
         max_side=s.model_max_side,
         points_per_batch=s.points_per_batch,
         points_per_side=s.sam_points_per_side,
+        min_iou=s.sam_min_iou,
+        min_stability=s.sam_min_stability,
     ),
 }
 _DEPTH: dict[str, Callable[[Settings], DepthEstimator]] = {
