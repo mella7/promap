@@ -134,6 +134,7 @@ to install.
 | `GET /health` | | status, version, which models are loaded |
 | `POST /v1/segment` | PNG or JPEG image as the raw body | surfaces as named masks |
 | `POST /v1/depth` | PNG or JPEG image as the raw body | relative depth as a 16-bit PNG |
+| `POST /v1/assistant` | JSON: the scene and a typed request | checked scene ops and a message |
 
 The full format, including how masks are encoded, is in
 [docs/backend-api.md](../docs/backend-api.md). Interactive docs are at
@@ -146,6 +147,7 @@ All from environment variables, see `.env.example`.
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `PROMAP_SEGMENTER` | `fake` | `fake`, `sam2`, `planes` or `sam2_planes` |
+| `PROMAP_ASSISTANT` | `rules` | `rules`: understands short requests, no language model, free |
 | `PROMAP_DEPTH` | `fake` | `fake` or `depth_anything_v2` |
 | `PROMAP_SAM_MODEL` | `facebook/sam2.1-hiera-small` | Any SAM 2.x checkpoint on Hugging Face |
 | `PROMAP_DEPTH_MODEL` | `depth-anything/Depth-Anything-V2-Small-hf` | Keep to Small: Base and Large are non-commercial |

@@ -9,7 +9,8 @@ enum SurfaceRole {
   object,
 }
 
-const _backgroundLabels = {'wall', 'floor', 'ceiling', 'background', 'facade'};
+/// Labels that make a surface background, whatever its size.
+const backgroundLabels = {'wall', 'floor', 'ceiling', 'background', 'facade'};
 
 /// Surfaces covering more than this share of the projector image count as
 /// background when their label doesn't say otherwise.
@@ -20,7 +21,7 @@ const backgroundAreaShare = 0.2;
 SurfaceRole roleOf(Surface surface, Scene scene) {
   final label = surface.label?.toLowerCase();
   if (label != null) {
-    if (_backgroundLabels.contains(label)) return SurfaceRole.background;
+    if (backgroundLabels.contains(label)) return SurfaceRole.background;
     if (label.isNotEmpty) return SurfaceRole.object;
   }
   final share = surface.area / (scene.projectorWidth * scene.projectorHeight);

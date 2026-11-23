@@ -36,6 +36,12 @@ If the backend has an API key set, add `--dart-define=PROMAP_API_KEY=...`.
 That's fine for development only: anything passed with `--dart-define` ends
 up inside the app.
 
+With the backend set, a text box appears under the buttons. After Scan and
+Find surfaces, type something like "make the walls sparkle and the box
+pulse red" and press Ask. The answer is one undo step, so Undo takes it
+back. Without a backend the box is hidden: the assistant only runs in the
+cloud.
+
 ## What you can do
 
 The window has the camera view on the left and the projector output on the

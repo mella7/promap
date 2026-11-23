@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:mapping_core/mapping_core.dart';
 import 'package:scene_core/scene_core.dart';
 
+import 'cloud/assistant_client.dart';
 import 'cloud/surface_finder.dart';
 import 'devices/output_controller.dart';
 import 'devices/simulated_camera.dart';
@@ -30,12 +31,17 @@ class Workbench extends ChangeNotifier {
   /// Folder that Save writes to and Open reads from.
   final Directory projectDir;
 
+  /// Turns typed requests into scene changes. Null without a backend.
+  final SceneAssistant? assistant;
+
   Workbench({
     this.settle = const Duration(milliseconds: 30),
     SurfaceFinder? finder,
     Directory? projectDir,
+    SceneAssistant? assistant,
   })  : finder = finder ?? SurfaceFinder.fromEnvironment(),
-        projectDir = projectDir ?? defaultProjectDir() {
+        projectDir = projectDir ?? defaultProjectDir(),
+        assistant = assistant ?? SceneAssistant.fromEnvironment() {
     _usePreset(SimPreset.normal);
   }
 
@@ -47,6 +53,7 @@ class Workbench extends ChangeNotifier {
   QualityReport? _report;
   String _status = '';
   bool _finding = false;
+  bool _asking = false;
 
   SimPreset get preset => _preset;
   SimulatedCamera get camera => _camera;
@@ -65,8 +72,12 @@ class Workbench extends ChangeNotifier {
   /// True while waiting for surfaces.
   bool get finding => _finding;
 
-  /// True while scanning or finding surfaces. Most buttons are off then.
-  bool get busy => scan.busy || _finding;
+  /// True while waiting for the assistant.
+  bool get asking => _asking;
+
+  /// True while scanning, finding surfaces or asking the assistant. Most
+  /// buttons are off then.
+  bool get busy => scan.busy || _finding || _asking;
 
   void setPreset(SimPreset preset) {
     if (busy) return;
@@ -204,6 +215,34 @@ class Workbench extends ChangeNotifier {
   Surface? get selectedSurface {
     final id = output.selected;
     return id == null ? null : _store.scene.surfaceById(id);
+  }
+
+  /// Sends [prompt] and the scene to the assistant and applies what comes
+  /// back as one undo step.
+  Future<void> askAssistant(String prompt) async {
+    final assistant = this.assistant;
+    final text = prompt.trim();
+    if (assistant == null || busy || text.isEmpty) return;
+    _asking = true;
+    _status = 'Asking the assistant...';
+    notifyListeners();
+    try {
+      final reply = await assistant.ask(_store.scene, text);
+      if (reply.ops.isNotEmpty) {
+        final label = text.length > 40 ? '${text.substring(0, 40)}...' : text;
+        _store.applyAll(reply.ops, label: 'Assistant: $label');
+      }
+      _status = reply.message;
+    } on AssistantException catch (error) {
+      _status = error.message;
+    } on SceneError catch (error) {
+      // The scene changed while waiting, for example a surface was removed.
+      _status = "The assistant's changes no longer fit the scene "
+          '(${error.message}). Nothing was changed.';
+    } finally {
+      _asking = false;
+      notifyListeners();
+    }
   }
 
   /// Dresses every surface with [theme], as one undo step.

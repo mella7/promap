@@ -74,6 +74,52 @@ Same body as `/v1/segment`.
 only: the numbers don't mean centimetres, and two photos can't be compared.
 The app doesn't use depth yet.
 
+## POST /v1/assistant
+
+Turns a typed request into scene ops. Body is JSON (`application/json`, up
+to 1 MB):
+
+```json
+{"scene": { ...the whole scene, see schema/scene.schema.json... },
+ "prompt": "make the walls sparkle and the box pulse red"}
+```
+
+Reply:
+
+```json
+{
+  "model": "rules",
+  "message": "Left wall, Right wall: sparkles. Box top: pulse, red.",
+  "ops": [
+    {"op": "set_content", "surface": "s2",
+     "content": {"type": "effect", "effect": "sparkles",
+                 "params": {"color": "#FFFFFF", "speed": 1.0, "density": 1.0}}}
+  ],
+  "dropped": []
+}
+```
+
+- `ops` go to `SceneStore.applyAll` as one undo step. They're checked
+  before they leave the backend: the surface exists, the effect is in
+  `schema/effects.json`, every setting is filled in and in range, and only
+  look-and-feel ops are allowed (`set_content`, `set_opacity`,
+  `set_visible`, `rename_surface`, `set_label`). The assistant never moves
+  geometry.
+- `message` is shown to the user. When nothing changed it says why, or
+  gives an example of what works.
+- `dropped` lists ops the check refused, for debugging. Empty with the
+  rule-based assistant.
+- `prompt` is 1 to 500 characters. A scene that doesn't match the schema
+  gets 400.
+
+The `rules` assistant (the default, `PROMAP_ASSISTANT=rules`) understands
+surface names ("Wall 2"), labels ("walls", "ceiling"), "background",
+"objects" or "box", "everything", effect words ("sparkle", "pulse",
+"neon", "scanlines", "flood", "trace"), theme names ("starry", "neon
+night", "warm glow"), colours, "faster" and "slower", "dim", percentages,
+"hide", "show" and "clear". Several requests can go in one prompt,
+separated by "and", commas or "then".
+
 ## Errors
 
 Errors come back as `{"detail": "<message>"}` with these codes:
@@ -83,5 +129,5 @@ Errors come back as `{"detail": "<message>"}` with these codes:
 | 400 | Empty body, not a readable PNG or JPEG, or larger than the side limit |
 | 401 | Missing or wrong API key |
 | 413 | Upload larger than the byte limit |
-| 415 | Content type isn't `image/png` or `image/jpeg` |
+| 415 | Content type isn't `image/png` or `image/jpeg` (or `application/json` for the assistant) |
 | 503 | The configured model can't run, usually because the ml extra isn't installed. The detail says what to do |

@@ -8,6 +8,7 @@ dependencies = [
     "uvicorn[standard]>=0.29",
     "numpy>=1.26",
     "pillow>=10.0",
+    "jsonschema>=4.18",
 ]
 
 [project.optional-dependencies]
@@ -30,6 +31,10 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["promap_backend*"]
+
+[tool.setuptools.package-data]
+# Copies of schema/*.json from the repo root, checked by scripts/check_schema.py
+promap_backend = ["data/*.json"]
 
 [tool.ruff]
 line-length = 100

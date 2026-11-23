@@ -113,7 +113,7 @@ class BackendSurfaceFinder implements SurfaceFinder {
           await response.transform(utf8.decoder).join().timeout(timeout);
       if (response.statusCode != 200) {
         throw SurfaceFinderException(
-            'The backend answered ${response.statusCode}: ${_detail(text)}');
+            'The backend answered ${response.statusCode}: ${backendErrorDetail(text)}');
       }
       return parseSegmentResponse(text, photo.width, photo.height);
     } on SocketException catch (error) {
@@ -159,7 +159,8 @@ SurfaceFinderResult parseSegmentResponse(String text, int width, int height) {
   }
 }
 
-String _detail(String text) {
+/// The `detail` of a FastAPI error reply, or the start of the raw text.
+String backendErrorDetail(String text) {
   try {
     final json = jsonDecode(text);
     if (json is Map && json['detail'] is String) return json['detail'] as String;

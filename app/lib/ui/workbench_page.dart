@@ -204,6 +204,8 @@ class _Controls extends StatelessWidget {
               ),
             ],
           ),
+        if (bench.assistant != null)
+          _AssistantBox(bench: bench, enabled: !busy && surfaces.isNotEmpty),
         if (selected != null && selected.content is EffectContent)
           _EffectSettings(
             key: ValueKey('${selected.id}:${(selected.content as EffectContent).effect}'),
@@ -217,7 +219,7 @@ class _Controls extends StatelessWidget {
           const SizedBox(height: 4),
           Text(bench.scan.phase, style: textTheme.bodySmall),
         ] else ...[
-          if (bench.finding) ...[
+          if (bench.finding || bench.asking) ...[
             const LinearProgressIndicator(),
             const SizedBox(height: 4),
           ],
@@ -240,7 +242,73 @@ class _Controls extends StatelessWidget {
           'Surfaces come from: ${bench.finder.description}',
           style: textTheme.bodySmall,
         ),
+        Text(
+          bench.assistant == null
+              ? 'Assistant: off. Start the app with '
+                  '--dart-define=PROMAP_BACKEND=<url> to use it.'
+              : 'Assistant: ${bench.assistant!.description}',
+          style: textTheme.bodySmall,
+        ),
       ],
+    );
+  }
+}
+
+/// A text field for requests like "make the walls sparkle".
+class _AssistantBox extends StatefulWidget {
+  final Workbench bench;
+  final bool enabled;
+
+  const _AssistantBox({required this.bench, required this.enabled});
+
+  @override
+  State<_AssistantBox> createState() => _AssistantBoxState();
+}
+
+class _AssistantBoxState extends State<_AssistantBox> {
+  final _text = TextEditingController();
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    final prompt = _text.text;
+    if (prompt.trim().isEmpty) return;
+    await widget.bench.askAssistant(prompt);
+    if (mounted) _text.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              key: const ValueKey('assistant-field'),
+              controller: _text,
+              enabled: widget.enabled,
+              maxLength: 500,
+              decoration: const InputDecoration(
+                isDense: true,
+                counterText: '',
+                hintText: 'Tell it what to do: "make the walls sparkle, '
+                    'the box pulse red"',
+              ),
+              onSubmitted: widget.enabled ? (_) => _send() : null,
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton.tonal(
+            onPressed: widget.enabled ? _send : null,
+            child: const Text('Ask'),
+          ),
+        ],
+      ),
     );
   }
 }

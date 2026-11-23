@@ -43,7 +43,26 @@ for op in bad_ops:
     if op_validator.is_valid(op):
         failures.append(f"schema accepted a bad operation: {op}")
 
+# The backend ships copies (its Docker image only sees backend/).
+for name in ("scene.schema.json", "effects.json"):
+    copy = ROOT / "backend" / "promap_backend" / "data" / name
+    if copy.read_text() != (ROOT / "schema" / name).read_text():
+        failures.append(f"backend/promap_backend/data/{name} differs from schema/{name}: copy it over")
+
+# Themes only use effects and settings that exist.
+effects = json.loads((ROOT / "schema" / "effects.json").read_text())
+params = {e["id"]: {p["key"] for p in e["params"]} for e in effects["effects"]}
+for theme in effects["themes"]:
+    for choice in theme["background"] + theme["object"]:
+        if choice["effect"] not in params:
+            failures.append(f"theme {theme['id']} uses unknown effect {choice['effect']}")
+        elif not set(choice["params"]) <= params[choice["effect"]]:
+            failures.append(f"theme {theme['id']} sets unknown settings on {choice['effect']}")
+
 if failures:
     print("\n".join(failures))
     sys.exit(1)
-print(f"Schema OK: 1 scene and {len(ops)} operations valid, {len(bad_ops)} bad operations refused")
+print(
+    f"Schema OK: 1 scene and {len(ops)} operations valid, {len(bad_ops)} bad operations refused,"
+    f" {len(params)} effects and {len(effects['themes'])} themes, backend copies match"
+)

@@ -205,6 +205,12 @@ Needs: step 5. Step 6 is optional for the first release.
 Big features that aren't needed for the core idea. In this order once the release works:
 
 - [ ] **AI assistant.** Chat panel where the model can only change the scene through the scene_core operations, so every AI edit can be undone. It can look at a camera snapshot to understand things like "the stuff on the left".
+  - [x] `/v1/assistant` with a rule-based assistant: "make the walls sparkle and the box pulse red" turns into checked scene ops
+  - [x] Every op checked before it leaves the backend: known surface, known effect, valid settings, no geometry
+  - [x] `schema/effects.json` shared by the app and the backend, with tests on both sides that they match
+  - [x] Text box in the app, applies the answer as one undo step
+  - [ ] Pick a language model for requests the rules don't get ("make it feel like a thunderstorm"). Needs a decision on cost
+  - [ ] Camera snapshot for things like "the stuff on the left"
 - [ ] **Real depth from the scan.** Estimate the projector's lens and position from the scan and triangulate real depth. Opens up 3D effects like virtual lights and proper shadows.
 - [ ] **Live tracking.** Notice when the projector shifts and fix it in the background, then follow slow-moving objects. Measure and show the delay. Fast movement isn't realistic on this hardware.
 - [ ] **Walk-around 3D scan.** Optional advanced mode for full 3D scenes.

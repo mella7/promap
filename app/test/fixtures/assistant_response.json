@@ -1,0 +1,51 @@
+{
+  "model": "rules",
+  "message": "Left wall, Right wall: sparkles. Box top: pulse, red. Right wall: brightness 60%.",
+  "ops": [
+    {
+      "op": "set_content",
+      "surface": "s2",
+      "content": {
+        "type": "effect",
+        "effect": "sparkles",
+        "params": {
+          "color": "#FFFFFF",
+          "speed": 1.0,
+          "density": 1.0
+        }
+      }
+    },
+    {
+      "op": "set_content",
+      "surface": "s3",
+      "content": {
+        "type": "effect",
+        "effect": "sparkles",
+        "params": {
+          "color": "#FFFFFF",
+          "speed": 1.0,
+          "density": 1.0
+        }
+      }
+    },
+    {
+      "op": "set_content",
+      "surface": "s1",
+      "content": {
+        "type": "effect",
+        "effect": "pulse",
+        "params": {
+          "color": "#FF2A2A",
+          "speed": 1.0,
+          "depth": 0.8
+        }
+      }
+    },
+    {
+      "op": "set_opacity",
+      "surface": "s3",
+      "opacity": 0.6
+    }
+  ],
+  "dropped": []
+}

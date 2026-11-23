@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://promap.local/schema/scene.schema.json",
+  "title": "Scene",
+  "description": "A mapped scene: projector size, calibration file and surfaces in drawing order. The same file also defines every operation that can change a scene, under $defs/op.",
+  "type": "object",
+  "required": ["version", "projector", "surfaces"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "projector": {
+      "type": "object",
+      "required": ["width", "height"],
+      "additionalProperties": false,
+      "properties": {
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "calibration": { "type": "string" },
+    "surfaces": { "type": "array", "items": { "$ref": "#/$defs/surface" } }
+  },
+  "$defs": {
+    "vec2": {
+      "description": "A point in projector pixels as [x, y].",
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }],
+      "items": false,
+      "minItems": 2
+    },
+    "content": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type"],
+          "additionalProperties": false,
+          "properties": { "type": { "const": "none" } }
+        },
+        {
+          "type": "object",
+          "required": ["type", "color"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "color" },
+            "color": { "type": "string", "pattern": "^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "source"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "image" },
+            "source": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "effect"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "effect" },
+            "effect": { "type": "string", "minLength": 1 },
+            "params": { "type": "object" }
+          }
+        }
+      ]
+    },
+    "surface": {
+      "type": "object",
+      "required": ["id", "name", "vertices"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "label": { "type": "string" },
+        "vertices": { "type": "array", "minItems": 3, "items": { "$ref": "#/$defs/vec2" } },
+        "content": { "$ref": "#/$defs/content" },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "visible": { "type": "boolean" }
+      }
+    },
+    "surfaceId": { "type": "string", "minLength": 1 },
+    "op": {
+      "description": "One change to a scene. These are the only edits the UI and the assistant can make.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["op", "value"],
+          "additionalProperties": false,
+          "properties": {
+            "op": { "const": "add_surface" },
+            "value": { "$ref": "#/$defs/surface" },
+            "index": { "type": "integer", "minimum": 0 }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "surface"],
+          "additionalProperties": false,
+          "properties": {
+            "op": { "const": "remove_surface" },
+            "surface": { "$ref": "#/$defs/surfaceId" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "surface", "name"],
+          "additionalProperties": false,
+          "properties": {
+            "op": { "const": "rename_surface" },
+            "surface": { "$ref": "#/$defs/surfaceId" },
+            "name": { "type": "string", "minLength": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "surface", "label"],
+          "additionalProperties": false,
+          "properties": {
+            "op": { "const": "set_label" },
+            "surface": { "$ref": "#/$defs/surfaceId" },
+            "label": { "type": ["string", "null"] }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "surface", "index", "position"],
+          "additionalProperties": false,
+          "properties": {
+            "op": { "const": "move_vertex" },
+            "surface": { "$ref": "#/$defs/surfaceId" },
+            "index": { "type": "integer", "minimum": 0 },
+            "position": { "$ref": "#/$defs/vec2" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "surface", "index", "dx", "dy"],
+          "additionalProperties": false,
+          "properties": {
+            "op": { "const": "nudge_vertex" },
+            "surface": { "$ref": "#/$defs/surfaceId" },
+            "index": { "type": "integer", "minimum": 0 },
+            "dx": { "type": "number" },
+            "dy": { "type": "number" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "surface", "vertices"],
+          "additionalProperties": false,
+          "properties": {
+            "op": { "const": "set_vertices" },
+            "surface": { "$ref": "#/$defs/surfaceId" },
+            "vertices": { "type": "array", "minItems": 3, "items": { "$ref": "#/$defs/vec2" } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "surface", "dx", "dy"],
+          "additionalProperties": false,
+          "properties": {
+            "op": { "const": "translate_surface" },
+            "surface": { "$ref": "#/$defs/surfaceId" },
+            "dx": { "type": "number" },
+            "dy": { "type": "number" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "surface", "content"],
+          "additionalProperties": false,
+          "properties": {
+            "op": { "const": "set_content" },
+            "surface": { "$ref": "#/$defs/surfaceId" },
+            "content": { "$ref": "#/$defs/content" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "surface", "opacity"],
+          "additionalProperties": false,
+          "properties": {
+            "op": { "const": "set_opacity" },
+            "surface": { "$ref": "#/$defs/surfaceId" },
+            "opacity": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "surface", "visible"],
+          "additionalProperties": false,
+          "properties": {
+            "op": { "const": "set_visible" },
+            "surface": { "$ref": "#/$defs/surfaceId" },
+            "visible": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "surface", "index"],
+          "additionalProperties": false,
+          "properties": {
+            "op": { "const": "reorder_surface" },
+            "surface": { "$ref": "#/$defs/surfaceId" },
+            "index": { "type": "integer", "minimum": 0 }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["op", "file"],
+          "additionalProperties": false,
+          "properties": {
+            "op": { "const": "set_calibration" },
+            "file": { "type": ["string", "null"] }
+          }
+        }
+      ]
+    }
+  }
+}

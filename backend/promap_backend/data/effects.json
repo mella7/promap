@@ -1,0 +1,274 @@
+{
+  "description": "The effect library and themes, shared by the app (packages/effects, which has a test that checks it matches) and the backend's assistant. Change both together.",
+  "version": 1,
+  "backgroundLabels": [
+    "wall",
+    "floor",
+    "ceiling",
+    "background",
+    "facade"
+  ],
+  "backgroundAreaShare": 0.2,
+  "effects": [
+    {
+      "id": "neon_outline",
+      "name": "Neon outline",
+      "description": "A glowing line around the edge that breathes.",
+      "params": [
+        {
+          "key": "color",
+          "label": "Colour",
+          "kind": "color",
+          "default": "#FF2BD6"
+        },
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "default": 1,
+          "min": 0.1,
+          "max": 4
+        },
+        {
+          "key": "width",
+          "label": "Line width",
+          "kind": "number",
+          "default": 4,
+          "min": 1,
+          "max": 20
+        }
+      ]
+    },
+    {
+      "id": "color_flood",
+      "name": "Colour flood",
+      "description": "Colour fills the surface from one side, then starts over.",
+      "params": [
+        {
+          "key": "color",
+          "label": "Colour",
+          "kind": "color",
+          "default": "#FF7A1A"
+        },
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "default": 1,
+          "min": 0.1,
+          "max": 4
+        },
+        {
+          "key": "vertical",
+          "label": "Fill upwards",
+          "kind": "toggle",
+          "default": true
+        }
+      ]
+    },
+    {
+      "id": "pulse",
+      "name": "Pulse",
+      "description": "The whole surface fades in and out.",
+      "params": [
+        {
+          "key": "color",
+          "label": "Colour",
+          "kind": "color",
+          "default": "#FFB000"
+        },
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "default": 1,
+          "min": 0.1,
+          "max": 4
+        },
+        {
+          "key": "depth",
+          "label": "Strength",
+          "kind": "number",
+          "default": 0.8,
+          "min": 0,
+          "max": 1
+        }
+      ]
+    },
+    {
+      "id": "scanlines",
+      "name": "Scanlines",
+      "description": "Stripes that slide across the surface.",
+      "params": [
+        {
+          "key": "color",
+          "label": "Colour",
+          "kind": "color",
+          "default": "#2E8BFF"
+        },
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "default": 1,
+          "min": 0.1,
+          "max": 4
+        },
+        {
+          "key": "spacing",
+          "label": "Spacing",
+          "kind": "number",
+          "default": 16,
+          "min": 4,
+          "max": 80
+        }
+      ]
+    },
+    {
+      "id": "sparkles",
+      "name": "Sparkles",
+      "description": "Points of light that twinkle inside the surface.",
+      "params": [
+        {
+          "key": "color",
+          "label": "Colour",
+          "kind": "color",
+          "default": "#FFFFFF"
+        },
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "default": 1,
+          "min": 0.1,
+          "max": 4
+        },
+        {
+          "key": "density",
+          "label": "Density",
+          "kind": "number",
+          "default": 1,
+          "min": 0.1,
+          "max": 4
+        }
+      ]
+    },
+    {
+      "id": "edge_trace",
+      "name": "Edge trace",
+      "description": "A bright spot runs around the edge, leaving a fading tail.",
+      "params": [
+        {
+          "key": "color",
+          "label": "Colour",
+          "kind": "color",
+          "default": "#3DFFB5"
+        },
+        {
+          "key": "speed",
+          "label": "Speed",
+          "kind": "number",
+          "default": 1,
+          "min": 0.1,
+          "max": 4
+        },
+        {
+          "key": "tail",
+          "label": "Tail length",
+          "kind": "number",
+          "default": 0.25,
+          "min": 0.05,
+          "max": 0.9
+        }
+      ]
+    }
+  ],
+  "themes": [
+    {
+      "id": "neon_night",
+      "name": "Neon night",
+      "background": [
+        {
+          "effect": "scanlines",
+          "params": {
+            "color": "#1F4FFF",
+            "speed": 0.6
+          }
+        },
+        {
+          "effect": "scanlines",
+          "params": {
+            "color": "#7A2BFF",
+            "speed": 0.4
+          }
+        }
+      ],
+      "object": [
+        {
+          "effect": "neon_outline",
+          "params": {
+            "color": "#FF2BD6"
+          }
+        },
+        {
+          "effect": "edge_trace",
+          "params": {
+            "color": "#3DFFB5"
+          }
+        }
+      ]
+    },
+    {
+      "id": "warm_glow",
+      "name": "Warm glow",
+      "background": [
+        {
+          "effect": "pulse",
+          "params": {
+            "color": "#B34700",
+            "speed": 0.3,
+            "depth": 0.5
+          }
+        }
+      ],
+      "object": [
+        {
+          "effect": "color_flood",
+          "params": {
+            "color": "#FFB000",
+            "speed": 0.5
+          }
+        },
+        {
+          "effect": "pulse",
+          "params": {
+            "color": "#FF5A1F",
+            "speed": 0.8
+          }
+        }
+      ]
+    },
+    {
+      "id": "starry",
+      "name": "Starry",
+      "background": [
+        {
+          "effect": "sparkles",
+          "params": {
+            "color": "#CFE3FF",
+            "speed": 0.5
+          }
+        }
+      ],
+      "object": [
+        {
+          "effect": "neon_outline",
+          "params": {
+            "color": "#FFFFFF",
+            "width": 2
+          }
+        }
+      ]
+    }
+  ]
+}
