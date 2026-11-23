@@ -16,7 +16,7 @@ void main() {
   final captureMs = watch.elapsedMilliseconds;
   watch.reset();
   final result = decodeScan(patterns, frames);
-  print('Simulated capture ${captureMs} ms, decode ${watch.elapsedMilliseconds} ms');
+  print('Simulated capture $captureMs ms, decode ${watch.elapsedMilliseconds} ms');
   print(result.report);
 
   // "Tap" the middle of the camera image and see where the projector should

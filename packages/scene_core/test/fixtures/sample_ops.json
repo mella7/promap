@@ -1,0 +1,26 @@
+[
+  {
+    "op": "add_surface",
+    "value": {
+      "id": "s4",
+      "name": "Shelf",
+      "vertices": [[500, 600], [640, 600], [640, 700]],
+      "content": { "type": "none" },
+      "opacity": 1,
+      "visible": true
+    }
+  },
+  { "op": "rename_surface", "surface": "s4", "name": "Shelf edge" },
+  { "op": "set_label", "surface": "s4", "label": "shelf" },
+  { "op": "move_vertex", "surface": "s4", "index": 2, "position": [650, 705] },
+  { "op": "nudge_vertex", "surface": "s2", "index": 0, "dx": -2, "dy": 1.5 },
+  { "op": "set_vertices", "surface": "s3", "vertices": [[700, 200], [900, 200], [900, 500], [700, 500]] },
+  { "op": "translate_surface", "surface": "s3", "dx": 10, "dy": -5 },
+  { "op": "set_content", "surface": "s4", "content": { "type": "color", "color": "#00FF88" } },
+  { "op": "set_opacity", "surface": "s4", "opacity": 0.5 },
+  { "op": "set_visible", "surface": "s3", "visible": true },
+  { "op": "reorder_surface", "surface": "s4", "index": 1 },
+  { "op": "set_calibration", "file": "calibration/garage.pmap" },
+  { "op": "set_label", "surface": "s1", "label": null },
+  { "op": "remove_surface", "surface": "s2" }
+]

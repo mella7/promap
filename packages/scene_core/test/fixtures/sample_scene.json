@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "projector": { "width": 1280, "height": 720 },
+  "calibration": "calibration/living-room.pmap",
+  "surfaces": [
+    {
+      "id": "s1",
+      "name": "Wall",
+      "label": "wall",
+      "vertices": [[0, 0], [1279, 0], [1279, 719], [0, 719]],
+      "content": { "type": "color", "color": "#101020" },
+      "opacity": 1,
+      "visible": true
+    },
+    {
+      "id": "s2",
+      "name": "Box top",
+      "label": "box",
+      "vertices": [[100, 100], [400, 120], [380, 300], [90, 280]],
+      "content": {
+        "type": "effect",
+        "effect": "neon_outline",
+        "params": { "color": "#FF3300", "speed": 1.5, "sound": true }
+      },
+      "opacity": 0.8,
+      "visible": true
+    },
+    {
+      "id": "s3",
+      "name": "Poster",
+      "vertices": [[700, 200.5], [900, 200.5], [900, 500], [700, 500]],
+      "content": { "type": "image", "source": "textures/lava.png" },
+      "opacity": 1,
+      "visible": false
+    }
+  ]
+}

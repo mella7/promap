@@ -4,19 +4,21 @@ A phone app that maps projections onto real objects without manual setup.
 Connect a phone to a projector, scan the scene, and assign effects to the
 surfaces it finds.
 
+The plan and where each step stands is in [ROADMAP.md](ROADMAP.md).
+
 ## Layout
 
 | Folder | What it is | Status |
 | --- | --- | --- |
 | `packages/calib_core` | Structured-light calibration in plain Dart | Step 1, written |
-| `packages/scene_core` | Scene graph, typed operations, undo | Step 3, not started |
+| `packages/scene_core` | Scene graph, typed operations, undo | Step 3 first half, written |
 | `packages/effects` | Effect format, shaders, themes | Step 5, not started |
 | `app` | Flutter app: phone UI, projector output, device layer | Steps 0 and 2, needs hardware |
 | `backend` | FastAPI service for segmentation, depth, generation, assistant | Step 4, not started |
-| `schema` | Scene JSON Schema shared by app and backend | Step 3, not started |
+| `schema` | Scene JSON Schema shared by app and backend | Written |
 | `docs` | Notes per step | |
 
-## Run step 1
+## Run the tests
 
 You need the Dart SDK 3.4 or newer (it ships with Flutter).
 
@@ -30,6 +32,14 @@ dart run example/simulated_scan.dart
 `dart test` runs a full scan against a simulated projector and camera and
 checks the decoded map against the known answer. The example prints the scan
 report and saves a calibration file.
+
+```
+cd packages/scene_core
+dart pub get
+dart test
+```
+
+This checks the scene model, all operations and undo.
 
 ## Rules
 
