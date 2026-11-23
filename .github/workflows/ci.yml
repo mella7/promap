@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [calib_core, scene_core, mapping_core]
+        package: [calib_core, scene_core, mapping_core, effects]
     defaults:
       run:
         working-directory: packages/${{ matrix.package }}

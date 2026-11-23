@@ -1,32 +1,58 @@
 import 'dart:ui' as ui;
 
 import 'package:calib_core/calib_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../devices/output_controller.dart';
-import 'colors.dart';
+import 'effect_painter.dart';
 import 'gray_image_view.dart';
 
 /// What the projector shows. On the laptop it is a panel; on the phone the
 /// same widget goes on the external display.
+///
+/// It redraws every frame so effects animate, and shows the frame rate in
+/// the corner.
 class OutputView extends StatefulWidget {
   final OutputController controller;
 
-  const OutputView({super.key, required this.controller});
+  /// Show the frames-per-second counter.
+  final bool showFps;
+
+  const OutputView({super.key, required this.controller, this.showFps = true});
 
   @override
   State<OutputView> createState() => _OutputViewState();
 }
 
-class _OutputViewState extends State<OutputView> {
+class _OutputViewState extends State<OutputView>
+    with SingleTickerProviderStateMixin {
   ui.Image? _pattern;
   GrayImage? _patternSource;
+
+  late final Ticker _ticker;
+  final ValueNotifier<double> _time = ValueNotifier(0);
+  final ValueNotifier<int> _fps = ValueNotifier(0);
+  int _framesThisSecond = 0;
+  Duration _secondStart = Duration.zero;
 
   @override
   void initState() {
     super.initState();
     widget.controller.addListener(_onChanged);
     _onChanged();
+    _ticker = createTicker(_onTick)..start();
+  }
+
+  void _onTick(Duration elapsed) {
+    _time.value = elapsed.inMicroseconds / 1e6;
+    _framesThisSecond++;
+    if (elapsed - _secondStart >= const Duration(seconds: 1)) {
+      _fps.value = _framesThisSecond;
+      _framesThisSecond = 0;
+      _secondStart = elapsed;
+    }
   }
 
   @override
@@ -60,8 +86,13 @@ class _OutputViewState extends State<OutputView> {
 
   @override
   void dispose() {
+    _ticker
+      ..stop()
+      ..dispose();
     widget.controller.removeListener(_onChanged);
     _pattern?.dispose();
+    _time.dispose();
+    _fps.dispose();
     super.dispose();
   }
 
@@ -70,9 +101,28 @@ class _OutputViewState extends State<OutputView> {
     final c = widget.controller;
     return AspectRatio(
       aspectRatio: c.width / c.height,
-      child: CustomPaint(
-        painter: OutputPainter(controller: c, pattern: _pattern),
-        child: const SizedBox.expand(),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          CustomPaint(
+            painter: OutputPainter(controller: c, time: _time, pattern: _pattern),
+          ),
+          if (widget.showFps)
+            Positioned(
+              right: 6,
+              top: 4,
+              child: ValueListenableBuilder<int>(
+                valueListenable: _fps,
+                builder: (context, fps, _) => Text(
+                  '$fps fps',
+                  style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 11,
+                      fontFeatures: [ui.FontFeature.tabularFigures()]),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -80,10 +130,13 @@ class _OutputViewState extends State<OutputView> {
 
 class OutputPainter extends CustomPainter {
   final OutputController controller;
+
+  /// Seconds since the view started, for animation.
+  final ValueListenable<double> time;
   final ui.Image? pattern;
 
-  OutputPainter({required this.controller, this.pattern})
-      : super(repaint: controller);
+  OutputPainter({required this.controller, required this.time, this.pattern})
+      : super(repaint: Listenable.merge([controller, time]));
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -126,18 +179,15 @@ class OutputPainter extends CustomPainter {
               }
             }
             path.close();
-            final color = colorOf(surface.content);
-            canvas.drawPath(
-                path,
-                Paint()
-                  ..color = color.withValues(alpha: surface.opacity * 0.85));
-            final selected = surface.id == c.selected;
-            canvas.drawPath(
-                path,
-                Paint()
-                  ..style = PaintingStyle.stroke
-                  ..strokeWidth = selected ? 3 : 1.5
-                  ..color = selected ? Colors.white : color);
+            paintSurfaceContent(canvas, path, surface, time.value);
+            if (surface.id == c.selected) {
+              canvas.drawPath(
+                  path,
+                  Paint()
+                    ..style = PaintingStyle.stroke
+                    ..strokeWidth = 2
+                    ..color = Colors.white);
+            }
           }
         }
     }
@@ -158,5 +208,7 @@ class OutputPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(OutputPainter oldDelegate) =>
-      oldDelegate.pattern != pattern || oldDelegate.controller != controller;
+      oldDelegate.pattern != pattern ||
+      oldDelegate.controller != controller ||
+      oldDelegate.time != time;
 }

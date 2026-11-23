@@ -13,7 +13,7 @@ The plan and where each step stands is in [ROADMAP.md](ROADMAP.md).
 | `packages/calib_core` | Structured-light calibration in plain Dart | Done, 25 tests passing |
 | `packages/scene_core` | Scene graph, typed operations, undo | Done, 37 tests passing |
 | `packages/mapping_core` | Turns camera-space masks and shapes into projector-space surfaces | Written |
-| `packages/effects` | Effect format, shaders, themes | Step 5, not started |
+| `packages/effects` | Effect library, settings and themes | Written |
 | `app` | Flutter app: phone UI, projector output, device layer | Runs on the laptop with the simulator. Phone part needs hardware |
 | `backend` | FastAPI service for segmentation, depth, later generation and the assistant | Runs with fake models |
 | `schema` | Scene JSON Schema shared by app and backend | Written |
@@ -51,6 +51,14 @@ dart test
 
 This runs the scan simulator, then turns camera-space masks into surfaces and
 compares them with the known answer.
+
+```
+cd packages/effects
+dart pub get
+dart test
+```
+
+This checks the effect library and themes.
 
 The schema check needs Python and `jsonschema`:
 

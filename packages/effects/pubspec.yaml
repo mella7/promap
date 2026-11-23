@@ -1,0 +1,15 @@
+name: effects
+description: The effect library for promap - effects, their settings, and themes that assign them to surfaces. Pure Dart, no Flutter.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.4.0
+
+dependencies:
+  scene_core:
+    path: ../scene_core
+
+dev_dependencies:
+  lints: ^4.0.0
+  test: ^1.25.0

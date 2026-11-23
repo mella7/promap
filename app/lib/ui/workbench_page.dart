@@ -1,4 +1,6 @@
+import 'package:effects/effects.dart';
 import 'package:flutter/material.dart';
+import 'package:scene_core/scene_core.dart';
 
 import '../devices/output_controller.dart';
 import '../devices/simulated_camera.dart';
@@ -42,7 +44,7 @@ class _WorkbenchPageState extends State<WorkbenchPage> {
                   children: [
                     Expanded(
                       child: _Panel(
-                        title: 'Camera - tap to light a spot',
+                        title: 'Camera - tap to light a spot or pick a surface',
                         child: CameraView(
                           frame: _bench.cameraFrame,
                           onTap: _bench.tapCamera,
@@ -105,6 +107,7 @@ class _Controls extends StatelessWidget {
     final report = bench.report;
     final textTheme = Theme.of(context).textTheme;
     final surfaces = store.scene.surfaces;
+    final selected = bench.selectedSurface;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,6 +145,20 @@ class _Controls extends StatelessWidget {
               onPressed: busy || !store.canRedo ? null : bench.redo,
               child: const Text('Redo'),
             ),
+            DropdownButton<String>(
+              hint: const Text('Theme'),
+              value: null,
+              onChanged: busy || surfaces.isEmpty
+                  ? null
+                  : (id) {
+                      final theme = id == null ? null : themeById(id);
+                      if (theme != null) bench.applyTheme(theme);
+                    },
+              items: [
+                for (final theme in themes)
+                  DropdownMenuItem(value: theme.id, child: Text(theme.name)),
+              ],
+            ),
             if (bench.output.mode == OutputMode.white && bench.calibrated)
               TextButton(
                 onPressed: busy ? null : bench.showScene,
@@ -154,6 +171,28 @@ class _Controls extends StatelessWidget {
               ),
           ],
         ),
+        if (selected != null)
+          Wrap(
+            spacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text('Selected: ${selected.name}', style: textTheme.bodyMedium),
+              DropdownButton<String>(
+                value: _effectIdOf(selected) ?? _plainColour,
+                onChanged: busy
+                    ? null
+                    : (id) => bench.setSurfaceEffect(
+                        selected.id, id == _plainColour ? null : id),
+                items: [
+                  const DropdownMenuItem(
+                      value: _plainColour, child: Text('Plain colour')),
+                  for (final effect in effectLibrary)
+                    DropdownMenuItem(
+                        value: effect.id, child: Text(effect.name)),
+                ],
+              ),
+            ],
+          ),
         const SizedBox(height: 8),
         if (bench.scan.busy) ...[
           LinearProgressIndicator(value: bench.scan.progress),
@@ -186,4 +225,15 @@ class _Controls extends StatelessWidget {
       ],
     );
   }
+}
+
+const _plainColour = '_plain';
+
+/// The library effect a surface shows, or null for anything else.
+String? _effectIdOf(Surface surface) {
+  final content = surface.content;
+  if (content is EffectContent && effectById(content.effect) != null) {
+    return content.effect;
+  }
+  return null;
 }

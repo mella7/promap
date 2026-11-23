@@ -51,9 +51,12 @@ right.
    otherwise. The masks go through `mapping_core` and show up as coloured
    surfaces. Undo and redo work on the whole step. If the backend is down
    you get a message saying so, and nothing changes.
-4. **Try the presets.** Bright room, weak projector, overexposed camera and
+4. **Pick a theme.** Every surface gets an animated effect in one step
+   (undo takes it back). Tap a surface in the camera view to select it and
+   switch its effect. The frame rate shows in the corner of the output.
+5. **Try the presets.** Bright room, weak projector, overexposed camera and
    camera aimed away each fail with their own message.
-5. **White light / Show mapping** switches between lighting the room and
+6. **White light / Show mapping** switches between lighting the room and
    showing the surfaces.
 
 ## How it's put together
@@ -67,7 +70,8 @@ right.
 | `lib/cloud/surface_finder.dart` | Where surfaces come from: the backend, or demo shapes |
 | `lib/cloud/png.dart`, `rle.dart` | Tiny PNG encoder for uploads, decoder for the backend's masks |
 | `lib/workbench.dart` | Ties camera, output, scan, calibration and scene store together |
-| `lib/ui/` | Camera view, output view and the page |
+| `lib/ui/effect_painter.dart` | Draws each effect from the `effects` package onto a surface |
+| `lib/ui/` | Camera view, animated output view with fps, and the page |
 
 On the phone, `OutputView` goes on the external display and the simulated
 camera is replaced by the real one. The rest stays the same.

@@ -11,6 +11,8 @@ dependencies:
     sdk: flutter
   calib_core:
     path: ../packages/calib_core
+  effects:
+    path: ../packages/effects
   mapping_core:
     path: ../packages/mapping_core
   scene_core:

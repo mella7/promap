@@ -29,7 +29,7 @@ Three points where I stop and decide if it's worth going on:
 | 2. Scan app | App shell runs on the laptop with the simulator. Phone part waiting on hardware |
 | 3. Scene and renderer | Scene core done, 37 tests passing. Renderer not started |
 | 4. Cloud service and auto surfaces | Backend runs with fake models, app calls it. Mask to surface code done. Real models not picked yet |
-| 5. Effect library | Not started |
+| 5. Effect library | Six effects, three themes and a picker running on the laptop. Sound and shader effects not started |
 | 6. AI generation | Not started |
 | 7. Release polish | Not started |
 | 8. Later | Not started |
@@ -139,16 +139,17 @@ Needs: step 2 for the app half. Check model licences and costs before picking an
 
 Effects are small programs that read each surface's shape, depth and photo, so one effect looks made for every surface. This is where it starts feeling like a product and not a tech demo.
 
-- [ ] Effect format: a shader plus a short list of settings (colour, speed, intensity)
-- [ ] Same inputs for every effect: mask, outline, depth, the surface photo, time, sound level
-- [ ] Outline effects: neon trace, edges drawing themselves in
-- [ ] Fill effects: colour flood, a sweep that follows depth
-- [ ] Texture effects: the surface's own photo rippling or flowing
-- [ ] One particle effect that bounces off the real edges
+- [x] Effect format: an id plus a short list of settings with defaults and ranges (`packages/effects`)
+- [x] First effects drawn with the normal canvas: neon outline, edge trace, colour flood, pulse, scanlines, sparkles
+- [ ] Same inputs for every effect: mask, outline, depth, the surface photo, time, sound level (outline, size and time done)
+- [ ] Shader effects for the heavier stuff: the surface's own photo rippling or flowing, a sweep that follows depth
+- [ ] A particle effect that bounces off the real edges (sparkles only twinkle for now)
 - [ ] Sound reactivity from the phone mic, usable by any effect
-- [ ] Effect picker with live preview on the projector and a few sliders
-- [ ] Themes: one tap assigns effects to all surfaces by role (big planes, edges, small objects)
-- [ ] 3 or 4 themes for whoever the first user ends up being
+- [x] Effect picker per surface (tap it in the camera view)
+- [ ] Sliders for each effect's settings
+- [x] Themes: one tap assigns effects to all surfaces by role (background or object)
+- [ ] Rework the themes once I know who the first user is
+- [ ] Check frame rate on a real phone with several effects running (the output shows fps)
 
 Demo: after a scan, one tap on a theme and the whole scene comes alive. Changing one surface's effect takes two taps.
 

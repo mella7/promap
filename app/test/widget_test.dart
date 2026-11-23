@@ -10,7 +10,8 @@ void main() {
     await tester.pump();
 
     expect(find.text('Projector output'), findsOneWidget);
-    expect(find.text('Camera - tap to light a spot'), findsOneWidget);
+    expect(find.text('Camera - tap to light a spot or pick a surface'),
+        findsOneWidget);
     expect(find.text('Scan'), findsOneWidget);
     expect(find.text('Press Scan to calibrate.'), findsOneWidget);
 

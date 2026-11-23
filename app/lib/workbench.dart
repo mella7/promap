@@ -1,4 +1,5 @@
 import 'package:calib_core/calib_core.dart';
+import 'package:effects/effects.dart';
 import 'package:flutter/foundation.dart';
 import 'package:mapping_core/mapping_core.dart';
 import 'package:scene_core/scene_core.dart';
@@ -190,6 +191,47 @@ class Workbench extends ChangeNotifier {
       _finding = false;
       notifyListeners();
     }
+  }
+
+  /// The surface last tapped, if it still exists.
+  Surface? get selectedSurface {
+    final id = output.selected;
+    return id == null ? null : _store.scene.surfaceById(id);
+  }
+
+  /// Dresses every surface with [theme], as one undo step.
+  void applyTheme(EffectTheme theme) {
+    if (busy) return;
+    final ops = themeOps(_store.scene, theme);
+    if (ops.isEmpty) {
+      _status = 'Find surfaces first, then pick a theme.';
+      notifyListeners();
+      return;
+    }
+    _store.applyAll(ops, label: 'Theme: ${theme.name}');
+    _status = 'Applied "${theme.name}" to ${ops.length} surfaces.';
+    notifyListeners();
+  }
+
+  /// Puts effect [effectId] on one surface, or a plain colour when null.
+  void setSurfaceEffect(String surfaceId, String? effectId) {
+    if (busy) return;
+    final surface = _store.scene.surfaceById(surfaceId);
+    if (surface == null) return;
+    final Content content;
+    if (effectId == null) {
+      final index = _store.scene.indexOf(surfaceId);
+      content = ColorContent(surfacePalette[index % surfacePalette.length]);
+    } else {
+      final spec = effectById(effectId);
+      if (spec == null) return;
+      content = spec.content();
+    }
+    _store.apply(SetContent(surfaceId, content));
+    _status = effectId == null
+        ? '"${surface.name}" is a plain colour now.'
+        : '"${surface.name}" now shows ${effectById(effectId)!.name}.';
+    notifyListeners();
   }
 
   void undo() => _store.undo();
