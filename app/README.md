@@ -53,10 +53,15 @@ right.
    you get a message saying so, and nothing changes.
 4. **Pick a theme.** Every surface gets an animated effect in one step
    (undo takes it back). Tap a surface in the camera view to select it and
-   switch its effect. The frame rate shows in the corner of the output.
-5. **Try the presets.** Bright room, weak projector, overexposed camera and
+   switch its effect, then tune it with the sliders, switches and colour
+   dots underneath. Sliders preview live and save one undo step when you
+   let go. The frame rate shows in the corner of the output.
+5. **Save / Open saved.** Writes the scene and the calibration to
+   `~/promap-projects/last` and loads them back, so a mapping survives a
+   restart without scanning again.
+6. **Try the presets.** Bright room, weak projector, overexposed camera and
    camera aimed away each fail with their own message.
-6. **White light / Show mapping** switches between lighting the room and
+7. **White light / Show mapping** switches between lighting the room and
    showing the surfaces.
 
 ## How it's put together

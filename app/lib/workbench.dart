@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:calib_core/calib_core.dart';
 import 'package:effects/effects.dart';
 import 'package:flutter/foundation.dart';
@@ -25,10 +27,15 @@ class Workbench extends ChangeNotifier {
   /// Where "Find surfaces" gets its masks: the backend or the demo shapes.
   final SurfaceFinder finder;
 
+  /// Folder that Save writes to and Open reads from.
+  final Directory projectDir;
+
   Workbench({
     this.settle = const Duration(milliseconds: 30),
     SurfaceFinder? finder,
-  }) : finder = finder ?? SurfaceFinder.fromEnvironment() {
+    Directory? projectDir,
+  })  : finder = finder ?? SurfaceFinder.fromEnvironment(),
+        projectDir = projectDir ?? defaultProjectDir() {
     _usePreset(SimPreset.normal);
   }
 
@@ -234,6 +241,98 @@ class Workbench extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Shows [params] on a surface's effect without adding an undo step, for
+  /// live preview while a slider moves. [commitSurfaceParams] makes it stick.
+  void previewSurfaceParams(String surfaceId, Map<String, Object?> params) {
+    final content = _effectContent(surfaceId, params);
+    if (content == null || !calibrated) return;
+    final scene = _store.scene;
+    output.showScene(scene.withSurfaces([
+      for (final s in scene.surfaces)
+        s.id == surfaceId ? s.copyWith(content: content) : s,
+    ]));
+  }
+
+  /// Saves new settings for a surface's effect as one undo step.
+  void commitSurfaceParams(String surfaceId, Map<String, Object?> params) {
+    if (busy) return;
+    final content = _effectContent(surfaceId, params);
+    if (content == null) return;
+    _store.apply(SetContent(surfaceId, content));
+  }
+
+  EffectContent? _effectContent(String surfaceId, Map<String, Object?> params) {
+    final current = _store.scene.surfaceById(surfaceId)?.content;
+    if (current is! EffectContent) return null;
+    return effectById(current.effect)?.content(params);
+  }
+
+  /// Writes the scene and the calibration to [projectDir].
+  Future<void> saveProject() async {
+    final map = _map;
+    if (map == null || busy) {
+      _status = 'Scan first, there is nothing to save yet.';
+      notifyListeners();
+      return;
+    }
+    try {
+      await projectDir.create(recursive: true);
+      final scene = _store.scene.withCalibration(_calibrationFile);
+      await File('${projectDir.path}/$_calibrationFile')
+          .writeAsBytes(map.toBytes(), flush: true);
+      await File('${projectDir.path}/$_sceneFile')
+          .writeAsString(scene.encode(), flush: true);
+      _status = 'Saved ${scene.surfaces.length} surfaces to ${projectDir.path}.';
+    } on FileSystemException catch (error) {
+      _status = 'Could not save: ${error.message} (${error.path}).';
+    }
+    notifyListeners();
+  }
+
+  /// Loads the scene and calibration last saved to [projectDir].
+  Future<void> openProject() async {
+    if (busy) return;
+    try {
+      final sceneFile = File('${projectDir.path}/$_sceneFile');
+      if (!await sceneFile.exists()) {
+        _status = 'Nothing saved in ${projectDir.path} yet.';
+        notifyListeners();
+        return;
+      }
+      final scene = Scene.decode(await sceneFile.readAsString());
+      final name = scene.calibration ?? _calibrationFile;
+      if (name.contains('/') || name.contains(r'\') || name.startsWith('.')) {
+        throw FormatException('Calibration file name "$name" is not allowed');
+      }
+      final map = CorrespondenceMap.fromBytes(
+          await File('${projectDir.path}/$name').readAsBytes());
+      if (map.projectorWidth != scene.projectorWidth ||
+          map.projectorHeight != scene.projectorHeight) {
+        throw const FormatException(
+            'The scene and the calibration are for different projectors');
+      }
+      if (map.cameraWidth != _camera.width ||
+          map.cameraHeight != _camera.height) {
+        throw const FormatException(
+            'The calibration was made with a different camera');
+      }
+      _map = map;
+      _report = null;
+      output.setDot(null);
+      output.select(null);
+      _store.replaceScene(scene);
+      _status = 'Opened ${scene.surfaces.length} surfaces from '
+          '${projectDir.path}.';
+    } on FormatException catch (error) {
+      _status = 'Could not open the project: ${error.message}';
+    } on SceneError catch (error) {
+      _status = 'Could not open the project: ${error.message}';
+    } on FileSystemException catch (error) {
+      _status = 'Could not open the project: ${error.message} (${error.path}).';
+    }
+    notifyListeners();
+  }
+
   void undo() => _store.undo();
 
   void redo() => _store.redo();
@@ -247,4 +346,15 @@ class Workbench extends ChangeNotifier {
   void _refreshCamera() {
     _cameraFrame = _camera.captureNow();
   }
+}
+
+const _sceneFile = 'scene.json';
+const _calibrationFile = 'calibration.pmap';
+
+/// Where projects go on the laptop: ~/promap-projects/last.
+Directory defaultProjectDir() {
+  final home = Platform.environment['HOME'] ??
+      Platform.environment['USERPROFILE'] ??
+      Directory.systemTemp.path;
+  return Directory('$home/promap-projects/last');
 }

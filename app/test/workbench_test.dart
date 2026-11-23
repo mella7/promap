@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:calib_core/calib_core.dart';
 import 'package:effects/effects.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -104,6 +106,85 @@ void main() {
 
     bench.setSurfaceEffect(bench.selectedSurface!.id, null);
     expect(bench.selectedSurface!.content, isA<ColorContent>());
+  });
+
+  test('slider preview changes the output only, letting go saves one step',
+      () async {
+    final bench = Workbench(settle: Duration.zero);
+    await bench.startScan();
+    await bench.findSurfaces();
+    bench.applyTheme(themeById('neon_night')!);
+    final box = bench.store.scene.surfaces.firstWhere((s) => s.name == 'Box top');
+    final before = bench.store.history.length;
+
+    bench.previewSurfaceParams(box.id, {'width': 12});
+    final shown = bench.output.scene!.surfaceById(box.id)!.content;
+    expect((shown as EffectContent).params['width'], 12.0);
+    expect(bench.store.history.length, before);
+    final stored = bench.store.scene.surfaceById(box.id)!.content;
+    expect((stored as EffectContent).params['width'], 4.0);
+
+    bench.commitSurfaceParams(box.id, {'width': 12});
+    expect(bench.store.history.length, before + 1);
+    final saved = bench.store.scene.surfaceById(box.id)!.content;
+    expect((saved as EffectContent).params['width'], 12.0);
+  });
+
+  test('save and open bring back the scene and the calibration', () async {
+    final dir = await Directory.systemTemp.createTemp('promap_test');
+    addTearDown(() => dir.delete(recursive: true));
+
+    final first = Workbench(settle: Duration.zero, projectDir: dir);
+    await first.startScan();
+    await first.findSurfaces();
+    first.applyTheme(themeById('warm_glow')!);
+    await first.saveProject();
+    expect(first.status, startsWith('Saved 3 surfaces'));
+    expect(File('${dir.path}/scene.json').existsSync(), isTrue);
+    expect(File('${dir.path}/calibration.pmap').existsSync(), isTrue);
+
+    final second = Workbench(settle: Duration.zero, projectDir: dir);
+    expect(second.calibrated, isFalse);
+    await second.openProject();
+
+    expect(second.status, startsWith('Opened 3 surfaces'));
+    expect(second.calibrated, isTrue);
+    expect(second.store.scene.surfaces, first.store.scene.surfaces);
+    expect(second.output.mode, OutputMode.scene);
+
+    // The loaded calibration works for tapping.
+    second.tapCamera(250, 170);
+    expect(second.selectedSurface?.name, 'Box top');
+  });
+
+  test('opening an empty folder or a broken file says what is wrong',
+      () async {
+    final dir = await Directory.systemTemp.createTemp('promap_test');
+    addTearDown(() => dir.delete(recursive: true));
+    final bench = Workbench(settle: Duration.zero, projectDir: dir);
+
+    await bench.openProject();
+    expect(bench.status, contains('Nothing saved'));
+
+    File('${dir.path}/scene.json').writeAsStringSync('{"version": 1}');
+    await bench.openProject();
+    expect(bench.status, startsWith('Could not open the project'));
+    expect(bench.calibrated, isFalse);
+
+    File('${dir.path}/scene.json').writeAsStringSync(
+        '{"version":1,"projector":{"width":320,"height":240},'
+        '"calibration":"../../etc/passwd","surfaces":[]}');
+    await bench.openProject();
+    expect(bench.status, contains('not allowed'));
+  });
+
+  test('saving before a scan is refused', () async {
+    final dir = await Directory.systemTemp.createTemp('promap_test');
+    addTearDown(() => dir.delete(recursive: true));
+    final bench = Workbench(settle: Duration.zero, projectDir: dir);
+    await bench.saveProject();
+    expect(bench.status, contains('Scan first'));
+    expect(dir.listSync(), isEmpty);
   });
 
   test('a finder error shows its message and changes nothing', () async {

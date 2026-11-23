@@ -62,7 +62,10 @@ class _WorkbenchPageState extends State<WorkbenchPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              _Controls(bench: _bench),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 300),
+                child: SingleChildScrollView(child: _Controls(bench: _bench)),
+              ),
             ],
           ),
         ),
@@ -159,6 +162,14 @@ class _Controls extends StatelessWidget {
                   DropdownMenuItem(value: theme.id, child: Text(theme.name)),
               ],
             ),
+            OutlinedButton(
+              onPressed: busy || !bench.calibrated ? null : bench.saveProject,
+              child: const Text('Save'),
+            ),
+            OutlinedButton(
+              onPressed: busy ? null : bench.openProject,
+              child: const Text('Open saved'),
+            ),
             if (bench.output.mode == OutputMode.white && bench.calibrated)
               TextButton(
                 onPressed: busy ? null : bench.showScene,
@@ -192,6 +203,13 @@ class _Controls extends StatelessWidget {
                 ],
               ),
             ],
+          ),
+        if (selected != null && selected.content is EffectContent)
+          _EffectSettings(
+            key: ValueKey('${selected.id}:${(selected.content as EffectContent).effect}'),
+            bench: bench,
+            surface: selected,
+            enabled: !busy,
           ),
         const SizedBox(height: 8),
         if (bench.scan.busy) ...[
@@ -236,4 +254,156 @@ String? _effectIdOf(Surface surface) {
     return content.effect;
   }
   return null;
+}
+
+/// Colours offered for an effect's colour setting.
+const _swatches = [
+  '#FFFFFF',
+  '#FF2BD6',
+  '#FF5A1F',
+  '#FFB000',
+  '#3DFFB5',
+  '#2E8BFF',
+  '#7A2BFF',
+  '#E83F6F',
+];
+
+/// One control per setting of the selected surface's effect. Sliders preview
+/// live while dragging and save one undo step when let go.
+class _EffectSettings extends StatefulWidget {
+  final Workbench bench;
+  final Surface surface;
+  final bool enabled;
+
+  const _EffectSettings({
+    super.key,
+    required this.bench,
+    required this.surface,
+    required this.enabled,
+  });
+
+  @override
+  State<_EffectSettings> createState() => _EffectSettingsState();
+}
+
+class _EffectSettingsState extends State<_EffectSettings> {
+  /// Slider values while a drag is in progress.
+  final Map<String, double> _dragging = {};
+
+  @override
+  Widget build(BuildContext context) {
+    final content = widget.surface.content as EffectContent;
+    final spec = effectById(content.effect);
+    if (spec == null) return const SizedBox.shrink();
+    final values = spec.resolve(content.params);
+    final id = widget.surface.id;
+    final textTheme = Theme.of(context).textTheme;
+
+    Map<String, Object?> withValue(String key, Object value) =>
+        {...values, key: value};
+
+    return Wrap(
+      spacing: 16,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (final param in spec.params)
+          switch (param.kind) {
+            ParamKind.number => SizedBox(
+                width: 280,
+                child: Row(
+                  children: [
+                    SizedBox(
+                        width: 80,
+                        child: Text(param.label, style: textTheme.bodySmall)),
+                    Expanded(
+                      child: Slider(
+                        min: param.min,
+                        max: param.max,
+                        value: _dragging[param.key] ??
+                            (values[param.key] as double),
+                        onChanged: !widget.enabled
+                            ? null
+                            : (v) {
+                                setState(() => _dragging[param.key] = v);
+                                widget.bench.previewSurfaceParams(
+                                    id, withValue(param.key, v));
+                              },
+                        onChangeEnd: !widget.enabled
+                            ? null
+                            : (v) {
+                                _dragging.remove(param.key);
+                                widget.bench.commitSurfaceParams(
+                                    id, withValue(param.key, v));
+                              },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ParamKind.toggle => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(param.label, style: textTheme.bodySmall),
+                  Switch(
+                    value: values[param.key] as bool,
+                    onChanged: !widget.enabled
+                        ? null
+                        : (v) => widget.bench
+                            .commitSurfaceParams(id, withValue(param.key, v)),
+                  ),
+                ],
+              ),
+            ParamKind.color => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(param.label, style: textTheme.bodySmall),
+                  const SizedBox(width: 6),
+                  for (final hex in _swatches)
+                    _Swatch(
+                      hex: hex,
+                      selected: values[param.key] == hex,
+                      onTap: !widget.enabled
+                          ? null
+                          : () => widget.bench
+                              .commitSurfaceParams(id, withValue(param.key, hex)),
+                    ),
+                ],
+              ),
+          },
+      ],
+    );
+  }
+}
+
+class _Swatch extends StatelessWidget {
+  final String hex;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  const _Swatch({required this.hex, required this.selected, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Color(0xFF000000 | int.parse(hex.substring(1), radix: 16));
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 20,
+          height: 20,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: selected ? Colors.white : Colors.white24,
+              width: selected ? 2.5 : 1,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
