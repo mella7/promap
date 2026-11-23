@@ -53,7 +53,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("task", choices=["segment", "depth"])
     parser.add_argument("photo", type=Path)
     parser.add_argument("--out", type=Path, help="where to write the result image")
-    parser.add_argument("--segmenter", default="sam2", help="fake or sam2 (default sam2)")
+    parser.add_argument(
+        "--segmenter",
+        default="sam2",
+        help="fake, sam2, planes (walls from depth) or sam2_planes (both); default sam2",
+    )
     parser.add_argument("--depth", default="depth_anything_v2", help="fake or depth_anything_v2")
     parser.add_argument("--device", help="cpu or cuda (default from PROMAP_DEVICE, else cpu)")
     parser.add_argument(

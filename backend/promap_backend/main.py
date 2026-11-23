@@ -25,8 +25,8 @@ def create_app(
 ) -> FastAPI:
     """Builds the app. Tests can pass their own models."""
     settings = settings or Settings.from_env()
-    segmenter = segmenter or load_segmenter(settings)
     depth_model = depth_model or load_depth(settings)
+    segmenter = segmenter or load_segmenter(settings, depth_model)
 
     app = FastAPI(title="promap backend", version=__version__)
 

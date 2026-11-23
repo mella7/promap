@@ -41,6 +41,8 @@ commercial app:
 | Setting | Model | What it does |
 | --- | --- | --- |
 | `PROMAP_SEGMENTER=sam2` | SAM 2.1 small (`facebook/sam2.1-hiera-small`) | Finds every surface in the photo. No names, so they come back as "Surface 1", "Surface 2" |
+| `PROMAP_SEGMENTER=planes` | Depth model only | Walls, ceiling and floor from the depth map, in about 2 s on a CPU. Can't see flat things on a wall |
+| `PROMAP_SEGMENTER=sam2_planes` | Both | Walls, ceiling and floor from depth, everything else from SAM, cut out of the walls. The one to use |
 | `PROMAP_DEPTH=depth_anything_v2` | Depth Anything V2 Small | Relative depth, closer is larger |
 
 SAM is driven by our own loop in `models/sam_auto.py`, not the transformers
@@ -51,6 +53,13 @@ gigabytes. Ours encodes the photo once, spreads a grid of prompts over all
 of it, drops unsure (`PROMAP_SAM_MIN_IOU`) and blurry
 (`PROMAP_SAM_MIN_STABILITY`) masks and repeats at SAM's 256x256 size, and
 only scales up the survivors.
+
+`models/planes.py` finds the big flat surfaces in the depth map. Depth
+Anything gives inverse depth with an unknown scale and offset, and on a flat
+surface that is still a linear function of the pixel position. So a wall is
+a large region where depth is one plane in (x, y), and we don't need to
+know the camera. Planes are named from their slope: ceiling, floor, wall.
+A small flat face in the middle (a box front) gets no name, like SAM's.
 
 Then `models/postprocess.py` turns them into surfaces: drops tiny and huge
 ones, cuts each box out of the wall behind it so surfaces don't overlap, and
@@ -77,6 +86,8 @@ Take a photo of your wall with a box in front of it, then:
 
 ```
 python -m promap_backend.cli segment room.jpg
+python -m promap_backend.cli segment room.jpg --segmenter planes
+python -m promap_backend.cli segment room.jpg --segmenter sam2_planes --points 16
 python -m promap_backend.cli depth room.jpg
 ```
 
@@ -134,7 +145,7 @@ All from environment variables, see `.env.example`.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `PROMAP_SEGMENTER` | `fake` | `fake` or `sam2` |
+| `PROMAP_SEGMENTER` | `fake` | `fake`, `sam2`, `planes` or `sam2_planes` |
 | `PROMAP_DEPTH` | `fake` | `fake` or `depth_anything_v2` |
 | `PROMAP_SAM_MODEL` | `facebook/sam2.1-hiera-small` | Any SAM 2.x checkpoint on Hugging Face |
 | `PROMAP_DEPTH_MODEL` | `depth-anything/Depth-Anything-V2-Small-hf` | Keep to Small: Base and Large are non-commercial |

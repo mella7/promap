@@ -128,8 +128,11 @@ Small backend that finds the surfaces so nobody has to draw polygons. The backen
 - [x] Depth speed on my laptop CPU: loads in 6 s, 1 s per photo
 - [x] SAM first real run: 128 s, found only ceiling, frame, photo grid and a pillow. Walls missing
 - [x] Replace the transformers SAM pipeline with our own loop: its prompt grid missed the right quarter of portrait photos and it ran out of memory
-- [ ] SAM again with our loop: do the walls, shelf and blind show up? Tune the thresholds
-- [ ] Big flat surfaces (walls, ceiling, floor) from depth or the scan itself instead of SAM
+- [x] SAM again with our loop: 27 s with 16 points, 12 surfaces
+- [x] Walls, ceiling and floor from the depth map (plane fitting, no extra model), named so effects know what's background
+- [x] sam2_planes: planes for the room, SAM for the objects, cut out of the walls
+- [ ] Try sam2_planes on more rooms, with the projector's white light on
+- [ ] Later: get planes from the projector scan itself, it measures the real geometry
 - [ ] Names for surfaces ("window", "box"): SAM gives none. Look at SAM 3 text prompts (its own Meta licence, allows commercial use) or a small labelling step
 - [ ] Deploy the backend somewhere the phone can reach (with the API key on)
 - [x] Map the returned masks from camera space into projector space using the calibration (`packages/mapping_core`)

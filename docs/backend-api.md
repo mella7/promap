@@ -39,9 +39,11 @@ Body: the photo, `Content-Type: image/png` or `image/jpeg`. The app sends an
 - `name` is shown to the user. `label` says what the thing is ("box",
   "window", "wall") and may be null. The fake model gives labels; SAM 2.1
   doesn't, so its surfaces are "Surface 1", "Surface 2" and so on with a
-  null label, largest first.
-- Masks don't overlap with SAM 2.1: a box in front of a wall is cut out of
-  the wall's mask.
+  null label, largest first. Planes found in depth (`planes`,
+  `sam2_planes`) are labelled "wall", "ceiling" or "floor" and named
+  "Wall", "Wall 2", "Ceiling" and so on.
+- Masks don't overlap with SAM 2.1 or planes: a box in front of a wall is
+  cut out of the wall's mask.
 - `score` is the model's confidence, 0 to 1.
 - `rle.counts` is the mask, run-length encoded (below).
 

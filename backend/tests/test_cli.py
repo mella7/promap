@@ -27,3 +27,11 @@ def test_runs_times_each_run(tmp_path, capsys):
 def test_missing_photo_is_reported(tmp_path, capsys):
     assert main(["segment", str(tmp_path / "nope.jpg"), "--segmenter", "fake"]) == 1
     assert "Cannot read" in capsys.readouterr().err
+
+
+def test_planes_from_depth_alone(tmp_path, capsys):
+    photo = tmp_path / "room.png"
+    Image.new("RGB", (480, 360)).save(photo)
+    assert main(["segment", str(photo), "--segmenter", "planes", "--depth", "fake"]) == 0
+    out = capsys.readouterr().out
+    assert "planes: loaded" in out and "Wall" in out
