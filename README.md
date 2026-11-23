@@ -14,7 +14,7 @@ The plan and where each step stands is in [ROADMAP.md](ROADMAP.md).
 | `packages/scene_core` | Scene graph, typed operations, undo | Done, 37 tests passing |
 | `packages/mapping_core` | Turns camera-space masks and shapes into projector-space surfaces | Written |
 | `packages/effects` | Effect format, shaders, themes | Step 5, not started |
-| `app` | Flutter app: phone UI, projector output, device layer | Steps 0 and 2, needs hardware |
+| `app` | Flutter app: phone UI, projector output, device layer | Runs on the laptop with the simulator. Phone part needs hardware |
 | `backend` | FastAPI service for segmentation, depth, generation, assistant | Step 4, not started |
 | `schema` | Scene JSON Schema shared by app and backend | Written |
 | `docs` | Notes per step | |
@@ -57,6 +57,15 @@ The schema check needs Python and `jsonschema`:
 ```
 pip install jsonschema
 python scripts/check_schema.py
+```
+
+The app has its own setup steps, see [app/README.md](app/README.md):
+
+```
+cd app
+flutter create --project-name promap_app --org me.mella7 --platforms=linux,android .
+flutter test
+flutter run -d linux
 ```
 
 CI runs all of these on every push and pull request.

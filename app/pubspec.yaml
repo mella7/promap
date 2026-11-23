@@ -1,0 +1,25 @@
+name: promap_app
+description: Projection mapping app. For now it runs on the laptop with a simulated camera and projector.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.4.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  calib_core:
+    path: ../packages/calib_core
+  mapping_core:
+    path: ../packages/mapping_core
+  scene_core:
+    path: ../packages/scene_core
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

@@ -26,9 +26,9 @@ Three points where I stop and decide if it's worth going on:
 | --- | --- |
 | 0. Hardware check | Waiting on hardware |
 | 1. Calibration core | Done, 25 tests passing |
-| 2. Scan app | Waiting on hardware |
+| 2. Scan app | App shell runs on the laptop with the simulator. Phone part waiting on hardware |
 | 3. Scene and renderer | Scene core done, 37 tests passing. Renderer not started |
-| 4. Cloud service and auto surfaces | Mask to surface code written (mapping_core), tests not run yet. Backend not started |
+| 4. Cloud service and auto surfaces | Mask to surface code done (mapping_core, 23 tests passing). Backend not started |
 | 5. Effect library | Not started |
 | 6. AI generation | Not started |
 | 7. Release polish | Not started |
@@ -72,14 +72,16 @@ Still open: the thresholds are only tuned on the simulator. Decode time at full 
 
 The real app running a full scan on the phone. Tap a spot in the camera view and it lights up on the object. First demo worth filming.
 
-- [ ] Flutter app with two parts: the phone UI and the projector output window
+The app shell already runs on the laptop (`app/`, `flutter run -d linux`) with the simulator standing in for the camera and projector. What's left here is the phone side: real camera, external display, real timing.
+
+- [x] Flutter app with two parts: the phone UI and the projector output (on the laptop for now, with the simulator)
 - [ ] Message channel between the two (they don't share memory)
 - [ ] Scan wizard: phone on a stand, frame the scene, check brightness, start
-- [ ] Scan loop: show a pattern, wait for it to settle, capture, next
+- [x] Scan loop: show a pattern, wait for it to settle, capture, next
 - [ ] Pick exposure automatically from the white frame before starting
-- [ ] Run the calib_core decoder on the frames and show the quality report
+- [x] Run the calib_core decoder on the frames and show the quality report
 - [ ] Clear messages when a scan fails: room too bright, camera overexposed, projector out of view
-- [ ] Tap to light: tap in the camera view, a dot shows up at that spot
+- [x] Tap to light: tap in the camera view, a dot shows up at that spot (simulator)
 - [ ] Check pass: project a dot grid through the map and measure how far off it lands
 - [ ] Record 2 or 3 real capture sets and add them to the calib_core tests
 - [ ] Tune the thresholds on real frames
@@ -121,7 +123,7 @@ Small backend that finds the surfaces so nobody has to draw polygons. The backen
 - [ ] App side: take one photo under flat white projector light and send it
 - [x] Map the returned masks from camera space into projector space using the calibration (`packages/mapping_core`)
 - [x] Clean up each mask into a surface: simplify the outline, drop tiny bits
-- [ ] Run the mapping_core tests
+- [x] Run the mapping_core tests
 - [ ] Use depth to split a mask into flat faces where it bends
 - [ ] Merge, split, rename and delete surfaces in the phone UI
 
